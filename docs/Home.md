@@ -4,6 +4,8 @@ Xst Reader is an open source reader for Microsoft Outlook `.ost` and `.pst` file
 
 This repository originally used `.NET Framework 4`. It has now been modernized to `.NET 10`.
 
+Current version: `2.0`
+
 Current applications:
 
 - `XstReader`
@@ -30,6 +32,8 @@ The current project:
 - uses `XstExport` as the single CLI exporter target
 - supports self-contained single-file release builds
 - includes fixes needed for real PST compatibility on modern .NET, including code-page registration and stricter runtime casting behavior
+
+That modernization is the defining change in version `2.0`.
 
 ## Core Capabilities
 

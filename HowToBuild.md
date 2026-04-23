@@ -19,6 +19,8 @@ Compared with the original `.NET Framework 4` codebase:
 - `XstExport` is now the single CLI exporter project
 - the desktop app uses JSON-backed local settings instead of the old `App.config` / `Properties.Settings` model
 
+This modernization is the basis of version `2.0`.
+
 ## Build The Solution
 
 ```powershell
