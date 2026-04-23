@@ -57,6 +57,7 @@ namespace XstReader
         PidTagNativeBody = 0x1016,
         PidTagBody = 0x1000,
         PidTagInternetCodepage = 0x3FDE,
+        PidTagMessageCodepage = 0x3FFD,
         PidTagHtml = 0x1013,
         PidTagRtfCompressed = 0x1009,
 

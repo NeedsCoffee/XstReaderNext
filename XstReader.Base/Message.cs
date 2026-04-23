@@ -508,6 +508,8 @@ namespace XstReader
             }
 
             p = Properties.FirstOrDefault(x => x.Tag == EpropertyTag.PidTagInternetCodepage);
+            if (p == null)
+                p = Properties.FirstOrDefault(x => x.Tag == EpropertyTag.PidTagMessageCodepage);
             if (p != null)
             {
                 return Encoding.GetEncoding(p.Value switch

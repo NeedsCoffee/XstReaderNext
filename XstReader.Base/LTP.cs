@@ -166,13 +166,14 @@ namespace XstReader
 
             // Read the index of properties
             var props = ReadBTHIndex<PCBTH>(blocks, h.hidUserRoot).ToArray();
+            var string8Encoding = ResolveString8Encoding(fs, subNodeTree, blocks, props);
 
             foreach (var prop in props)
             {
                  if (!g.ContainsKey(prop.wPropId))
                     continue;
 
-                object val = ReadPropertyValue(fs, subNodeTree, blocks, prop);
+                object val = ReadPropertyValue(fs, subNodeTree, blocks, prop, string8Encoding);
                 g[prop.wPropId](target, val);
             }
         }
@@ -187,13 +188,14 @@ namespace XstReader
 
             // Read the index of properties
             var props = ReadBTHIndex<PCBTH>(blocks, h.hidUserRoot).ToArray();
+            var string8Encoding = ResolveString8Encoding(fs, subNodeTree, blocks, props);
 
             foreach (var prop in props)
             {
                 if (excluding != null && excluding.Contains(prop.wPropId))
                     continue;
 
-                object val = ReadPropertyValue(fs, subNodeTree, blocks, prop);
+                object val = ReadPropertyValue(fs, subNodeTree, blocks, prop, string8Encoding);
 
                 Property p = CreatePropertyObject(fs, prop.wPropId, val);
 
@@ -203,7 +205,7 @@ namespace XstReader
             yield break;
         }
 
-        private object ReadPropertyValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, PCBTH prop)
+        private object ReadPropertyValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, PCBTH prop, Encoding string8Encoding)
         {
             object val = null;
             byte[] buf = null;
@@ -292,7 +294,7 @@ namespace XstReader
                         if (buf == null)
                             val = "<Could not read string value>";
                         else
-                            val = Encoding.UTF8.GetString(buf, 0, buf.Length);
+                            val = string8Encoding.GetString(buf, 0, buf.Length);
                     }
                     break;
 
@@ -444,6 +446,7 @@ namespace XstReader
 
             // Work out which of the columns are both present in the table and have getters defined
             var colsToGet = cols.Where(c => g.ContainsKey(c.wPropId)).ToList();
+            var defaultString8Encoding = GetDefaultString8Encoding();
 
             // The data rows may be held in line, or in a sub node
             if (t.hnidRows.IsHID)
@@ -459,13 +462,13 @@ namespace XstReader
                         Length = buf.Length,
                     }
                 };
-                return ReadTableData<T>(fs, t, blocks, dataBlocks, cols, colsToGet, subNodeTree, indexes, g, idGetter, storeProp);
+                return ReadTableData<T>(fs, t, blocks, dataBlocks, cols, colsToGet, subNodeTree, indexes, g, idGetter, storeProp, defaultString8Encoding);
             }
             else if (t.hnidRows.NID.HasValue)
             {
                 // Don't use GetBytesForHNID in this case, as we need to handle multiple blocks
                 var dataBlocks = ReadSubNodeRowDataBlocks(fs, subNodeTree, t.hnidRows.NID);
-                return ReadTableData<T>(fs, t, blocks, dataBlocks, cols, colsToGet, subNodeTree, indexes, g, idGetter, storeProp);
+                return ReadTableData<T>(fs, t, blocks, dataBlocks, cols, colsToGet, subNodeTree, indexes, g, idGetter, storeProp, defaultString8Encoding);
             }
             else
                 return Enumerable.Empty<T>();
@@ -473,7 +476,7 @@ namespace XstReader
 
         // Read the data rows of a table, populating the members of target type T as specified by the supplied property getters, and optionally getting all columns as properties
         private IEnumerable<T> ReadTableData<T>(FileStream fs, TCINFO t, List<HNDataBlock> blocks, List<RowDataBlock> dataBlocks, TCOLDESC[] cols, List<TCOLDESC> colsToGet,
-             BTree<Node> subNodeTree, TCROWIDUnicode[] indexes, PropertyGetters<T> g, Action<T, UInt32> idGetter, Action<T, Property> storeProp) where T : new()
+             BTree<Node> subNodeTree, TCROWIDUnicode[] indexes, PropertyGetters<T> g, Action<T, UInt32> idGetter, Action<T, Property> storeProp, Encoding defaultString8Encoding) where T : new()
         {
             int rgCEBSize = (int)Math.Ceiling((decimal)t.cCols / 8);
             int rowsPerBlock;
@@ -506,6 +509,7 @@ namespace XstReader
 
                 // Read the column existence data
                 var rgCEB = Map.MapArray<Byte>(db.Buffer, (int)(rowOffset + t.rgibTCI_1b), rgCEBSize);
+                var string8Encoding = ResolveTableString8Encoding(db, rowOffset, cols, rgCEB, defaultString8Encoding);
 
                 foreach (var col in colsToGet)
                 {
@@ -513,7 +517,7 @@ namespace XstReader
                     if ((rgCEB[col.iBit / 8] & (0x01 << (7 - (col.iBit % 8)))) == 0)
                         continue;
 
-                    object val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col);
+                    object val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col, string8Encoding);
 
                     g[col.wPropId](row, val);
                 }
@@ -527,7 +531,7 @@ namespace XstReader
                         if ((rgCEB[col.iBit / 8] & (0x01 << (7 - (col.iBit % 8)))) == 0)
                             continue;
 
-                        object val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col);
+                        object val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col, string8Encoding);
 
                         Property p = CreatePropertyObject(fs, col.wPropId, val);
 
@@ -540,7 +544,7 @@ namespace XstReader
             yield break; // No more entries
         }
 
-        private object ReadTableColumnValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, RowDataBlock db, long rowOffset, TCOLDESC col)
+        private object ReadTableColumnValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, RowDataBlock db, long rowOffset, TCOLDESC col, Encoding string8Encoding)
         {
             object val = null;
             HNID hnid;
@@ -621,7 +625,7 @@ namespace XstReader
                             if (col.wPropId == EpropertyTag.PidTagSubjectW)
                                 if (buf[0] == 0x01)  // ANSI 0x01
                                     skip = 2;
-                            val = Encoding.UTF8.GetString(buf, skip, buf.Length - skip);
+                            val = string8Encoding.GetString(buf, skip, buf.Length - skip);
                         }
                     }
                     if (val is string emptyAnsiSubject && emptyAnsiSubject.Length == 0 && col.wPropId == EpropertyTag.PidTagSubjectW)
@@ -656,17 +660,27 @@ namespace XstReader
         private IEnumerable<T> ReadBTHIndex<T>(List<HNDataBlock> blocks, HID hid)
         {
             var b = MapType<BTHHEADER>(blocks, hid);
-            foreach (var row in ReadBTHIndexHelper<T>(blocks, b.hidRoot, b.bIdxLevels))
+            if (b.btype != EbType.bTypeBTH)
+                throw new XstException("Was expecting a BTH");
+            if (b.cbKey != 2 && b.cbKey != 4 && b.cbKey != 8 && b.cbKey != 16)
+                throw new XstException("BTH has an invalid key size");
+            if (b.cbEnt == 0 || b.cbEnt > 32)
+                throw new XstException("BTH has an invalid value size");
+
+            foreach (var row in ReadBTHIndexHelper<T>(blocks, b.hidRoot, b.bIdxLevels, b.cbKey, b.cbEnt))
                 yield return row;
 
             yield break; // No more entries
         }
 
-        private IEnumerable<T> ReadBTHIndexHelper<T>(List<HNDataBlock> blocks, HID hid, int level)
+        private IEnumerable<T> ReadBTHIndexHelper<T>(List<HNDataBlock> blocks, HID hid, int level, int keySize, int valueSize)
         {
             if (level == 0)
             {
-                int recCount = HidSize(blocks, hid) / Marshal.SizeOf(typeof(T));
+                int recordSize = keySize + valueSize;
+                if (Marshal.SizeOf(typeof(T)) != recordSize)
+                    throw new XstException($"BTH leaf record size mismatch for {typeof(T).Name}");
+                int recCount = HidSize(blocks, hid) / recordSize;
                 if (hid.GetIndex(ndb.IsUnicode4K) != 0)
                 {
                     // The T record also forms the key of the BTH entry
@@ -676,12 +690,13 @@ namespace XstReader
             }
             else
             {
-                int recCount = HidSize(blocks, hid) / Marshal.SizeOf(typeof(IntermediateBTH4));
-                var inters = MapArray<IntermediateBTH4>(blocks, hid, recCount);
+                int recordSize = keySize + Marshal.SizeOf(typeof(HID));
+                int recCount = HidSize(blocks, hid) / recordSize;
 
-                foreach (var inter in inters)
+                for (int i = 0; i < recCount; i++)
                 {
-                    foreach (var row in ReadBTHIndexHelper<T>(blocks, inter.hidNextLevel, level - 1))
+                    var inter = MapType<HID>(blocks, hid, i * recordSize + keySize);
+                    foreach (var row in ReadBTHIndexHelper<T>(blocks, inter, level - 1, keySize, valueSize))
                         yield return row;
                 }
             }
@@ -735,6 +750,8 @@ namespace XstReader
                 if (index == 0)
                 {
                     var h = Map.MapType<HNHDR>(buf, 0);
+                    if (h.bSig != 0xEC)
+                        throw new XstException("Heap-on-node header signature is invalid");
                     var pm = Map.MapType<HNPAGEMAP>(buf, h.ibHnpm);
                     var b = new HNDataBlock
                     {
@@ -775,6 +792,60 @@ namespace XstReader
                 index++;
             }
             return blocks;
+        }
+
+        private Encoding ResolveString8Encoding(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, IEnumerable<PCBTH> props)
+        {
+            foreach (var prop in props)
+            {
+                if (prop.wPropId != EpropertyTag.PidTagMessageCodepage && prop.wPropId != EpropertyTag.PidTagInternetCodepage)
+                    continue;
+                if (prop.wPropType != EpropertyType.PtypInteger32)
+                    continue;
+
+                object value = ReadPropertyValue(fs, subNodeTree, blocks, prop, Encoding.UTF8);
+                if (value is UInt32 uintValue)
+                    return GetEncodingFromCodePage(unchecked((int)uintValue));
+                if (value is Int32 intValue)
+                    return GetEncodingFromCodePage(intValue);
+            }
+
+            return GetDefaultString8Encoding();
+        }
+
+        private Encoding ResolveTableString8Encoding(RowDataBlock db, long rowOffset, IEnumerable<TCOLDESC> cols, byte[] rgCEB, Encoding defaultEncoding)
+        {
+            foreach (var col in cols)
+            {
+                if (col.wPropId != EpropertyTag.PidTagMessageCodepage && col.wPropId != EpropertyTag.PidTagInternetCodepage)
+                    continue;
+                if (col.wPropType != EpropertyType.PtypInteger32 || col.cbData != 4)
+                    continue;
+                if ((rgCEB[col.iBit / 8] & (0x01 << (7 - (col.iBit % 8)))) == 0)
+                    continue;
+
+                int codePage = Map.MapType<Int32>(db.Buffer, (int)rowOffset + col.ibData);
+                return GetEncodingFromCodePage(codePage);
+            }
+
+            return defaultEncoding;
+        }
+
+        private Encoding GetDefaultString8Encoding()
+        {
+            return GetEncodingFromCodePage(1252);
+        }
+
+        private static Encoding GetEncodingFromCodePage(int codePage)
+        {
+            try
+            {
+                return Encoding.GetEncoding(codePage);
+            }
+            catch (ArgumentException)
+            {
+                return Encoding.GetEncoding(1252);
+            }
         }
 
         // Used in reading property contexts and table contexts to get a data value which might be held either on the local heap, or in a sub node

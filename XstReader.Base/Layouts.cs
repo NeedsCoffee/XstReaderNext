@@ -29,6 +29,7 @@ namespace XstReader
         NDB_CRYPT_NONE = 0x00,
         NDB_CRYPT_PERMUTE = 0x01,
         NDB_CRYPT_CYCLIC = 0x02,
+        NDB_CRYPT_EDPCRYPTED = 0x10,
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]

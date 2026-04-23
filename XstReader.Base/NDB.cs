@@ -172,36 +172,55 @@ namespace XstReader
         {
             using (var fs = GetReadStream())
             {
-                var h = Map.ReadType<FileHeader1>(fs);
+                var header1Length = Marshal.SizeOf(typeof(FileHeader1));
+                var header1Bytes = new byte[header1Length];
+                fs.ReadExactly(header1Bytes, 0, header1Bytes.Length);
+                var h = Map.MapType<FileHeader1>(header1Bytes);
 
                 if (h.dwMagic != 0x4e444221)
                     throw new XstException("File is not a .ost or .pst file: the magic cookie is missing");
+                if (h.wMagicClient != 0x4d53)
+                    throw new XstException("File is not a .ost or .pst file: the client magic is invalid");
+                if (h.bPlatformCreate != 0x01 || h.bPlatformAccess != 0x01)
+                    throw new XstException("PST header platform markers are invalid");
 
-                if (h.wVer == 0x15 || h.wVer == 0x17 )
-                {
-                    var h2 = Map.ReadType<FileHeader2Unicode>(fs);
-                    bCryptMethod = h2.bCryptMethod;
-                    IsUnicode = true;
-                    ReadBTPageUnicode(fs, h2.root.BREFNBT.ib, nodeTree.Root);
-                    ReadBTPageUnicode(fs, h2.root.BREFBBT.ib, dataTree.Root);
-                }
-                else if (h.wVer == 0x24)
+                if (h.wVer == 0x24)
                 {
                     // This value indicates the use of 4K pages, as opposed to 512 bytes
                     // It is used only in .ost files, and was introduced in Office 2013
                     // It is not documented in [MS-PST], being .ost only
-                    var h2 = Map.ReadType<FileHeader2Unicode>(fs);
+                    var h2Bytes = new byte[Marshal.SizeOf(typeof(FileHeader2Unicode))];
+                    fs.ReadExactly(h2Bytes, 0, h2Bytes.Length);
+                    var h2 = Map.MapType<FileHeader2Unicode>(h2Bytes);
                     bCryptMethod = h2.bCryptMethod;
                     IsUnicode = true;
                     IsUnicode4K = true;
                     ReadBTPageUnicode4K(fs, h2.root.BREFNBT.ib, nodeTree.Root);
                     ReadBTPageUnicode4K(fs, h2.root.BREFBBT.ib, dataTree.Root);
                 }
+                else if (h.wVer >= 0x17)
+                {
+                    var h2Bytes = new byte[Marshal.SizeOf(typeof(FileHeader2Unicode))];
+                    fs.ReadExactly(h2Bytes, 0, h2Bytes.Length);
+                    ValidateUnicodeHeader(header1Bytes, h2Bytes);
+                    var h2 = Map.MapType<FileHeader2Unicode>(h2Bytes);
+                    bCryptMethod = h2.bCryptMethod;
+                    IsUnicode = true;
+                    if (bCryptMethod == EbCryptMethod.NDB_CRYPT_EDPCRYPTED)
+                        throw new XstException("This PST is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
+                    ReadBTPageUnicode(fs, h2.root.BREFNBT.ib, nodeTree.Root);
+                    ReadBTPageUnicode(fs, h2.root.BREFBBT.ib, dataTree.Root);
+                }
                 else if (h.wVer == 0x0e || h.wVer == 0x0f)
                 {
-                    var h2 = Map.ReadType<FileHeader2ANSI>(fs);
+                    var h2Bytes = new byte[Marshal.SizeOf(typeof(FileHeader2ANSI))];
+                    fs.ReadExactly(h2Bytes, 0, h2Bytes.Length);
+                    ValidateAnsiHeader(header1Bytes, h2Bytes);
+                    var h2 = Map.MapType<FileHeader2ANSI>(h2Bytes);
                     bCryptMethod = h2.bCryptMethod;
                     IsUnicode = false;
+                    if (bCryptMethod == EbCryptMethod.NDB_CRYPT_EDPCRYPTED)
+                        throw new XstException("This PST is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
                     ReadBTPageANSI(fs, h2.root.BREFNBT.ib, nodeTree.Root);
                     ReadBTPageANSI(fs, h2.root.BREFBBT.ib, dataTree.Root);
                 }
@@ -230,7 +249,10 @@ namespace XstReader
         private void ReadBTPageUnicode(FileStream fs, ulong fileOffset, TreeIntermediate parent)
         {
             fs.Seek((long)fileOffset, SeekOrigin.Begin);
-            var p = Map.ReadType<BTPAGEUnicode>(fs);
+            var pageBytes = new byte[512];
+            fs.ReadExactly(pageBytes, 0, pageBytes.Length);
+            ValidatePage(pageBytes, fileOffset, isUnicode: true);
+            var p = Map.MapType<BTPAGEUnicode>(pageBytes);
 
             // read entries
             for (int i = 0; i < p.cEnt; i++)
@@ -283,7 +305,9 @@ namespace XstReader
         private void ReadBTPageUnicode4K(FileStream fs, ulong fileOffset, TreeIntermediate parent)
         {
             fs.Seek((long)fileOffset, SeekOrigin.Begin);
-            var p = Map.ReadType<BTPAGEUnicode4K>(fs);
+            var pageBytes = new byte[4096];
+            fs.ReadExactly(pageBytes, 0, pageBytes.Length);
+            var p = Map.MapType<BTPAGEUnicode4K>(pageBytes);
 
             // read entries
             for (int i = 0; i < p.cEnt; i++)
@@ -335,7 +359,10 @@ namespace XstReader
         private void ReadBTPageANSI(FileStream fs, ulong fileOffset, TreeIntermediate parent)
         {
             fs.Seek((long)fileOffset, SeekOrigin.Begin);
-            var p = Map.ReadType<BTPAGEANSI>(fs);
+            var pageBytes = new byte[512];
+            fs.ReadExactly(pageBytes, 0, pageBytes.Length);
+            ValidatePage(pageBytes, fileOffset, isUnicode: false);
+            var p = Map.MapType<BTPAGEANSI>(pageBytes);
 
             // read entries
             for (int i = 0; i < p.cEnt; i++)
@@ -516,16 +543,25 @@ namespace XstReader
             if (rb == null)
                 throw new XstException("Data block does not exist");
 
+            var trailerLength = IsUnicode4K
+                ? Marshal.SizeOf(typeof(BLOCKTRAILERUnicode4K))
+                : IsUnicode
+                    ? Marshal.SizeOf(typeof(BLOCKTRAILERUnicode))
+                    : Marshal.SizeOf(typeof(BLOCKTRAILERANSI));
+            var blockSize = Integrity.AlignTo64(checked((int)rb.Length + trailerLength));
+            var blockBytes = new byte[blockSize];
+            fs.Seek((long)rb.Offset, SeekOrigin.Begin);
+            fs.ReadExactly(blockBytes, 0, blockBytes.Length);
+
             if (IsUnicode4K && rb.Length != rb.InflatedLength)
             {
-                fs.Seek((long)rb.Offset, SeekOrigin.Begin);
-
                 // The first two bytes are a zlib header which DeflateStream does not understand
                 // They should be 0x789c, the magic code for default compression
-                if (fs.ReadByte() != 0x78 || fs.ReadByte() != 0x9c)
+                if (blockBytes[0] != 0x78 || blockBytes[1] != 0x9c)
                     throw new XstException("Unexpected header in compressed data stream");
 
-                using (DeflateStream decompressionStream = new DeflateStream(fs, CompressionMode.Decompress, true))
+                using (var compressedStream = new MemoryStream(blockBytes, 2, checked((int)rb.Length) - 2, false))
+                using (DeflateStream decompressionStream = new DeflateStream(compressedStream, CompressionMode.Decompress, false))
                 {
                     if (buffer == null)
                         buffer = new byte[rb.InflatedLength];
@@ -538,8 +574,8 @@ namespace XstReader
             {
                 if (buffer == null)
                     buffer = new byte[rb.Length];
-                fs.Seek((long)rb.Offset, SeekOrigin.Begin);
-                fs.ReadExactly(buffer, offset, checked((int)rb.Length));
+                Array.Copy(blockBytes, 0, buffer, offset, checked((int)rb.Length));
+                ValidateBlock(blockBytes, rb.Offset, checked((int)rb.Length), IsUnicode, rb.Key, buffer, offset, !rb.IsInternal);
                 read = rb.Length;
             }
 
@@ -619,6 +655,108 @@ namespace XstReader
                     var nb = new Node { Key = sle.nid, DataBid = sle.bidData, SubDataBid = sle.bidSub };
                     parent.Children.Add(nb);
                 }
+            }
+        }
+
+        private void ValidateUnicodeHeader(byte[] header1Bytes, byte[] header2Bytes)
+        {
+            var headerBytes = new byte[header1Bytes.Length + header2Bytes.Length];
+            Array.Copy(header1Bytes, 0, headerBytes, 0, header1Bytes.Length);
+            Array.Copy(header2Bytes, 0, headerBytes, header1Bytes.Length, header2Bytes.Length);
+
+            var h1 = Map.MapType<FileHeader1>(header1Bytes);
+            var h2 = Map.MapType<FileHeader2Unicode>(header2Bytes);
+            if (h2.bSentinel != 0x80)
+                throw new XstException("Unicode PST header sentinel is invalid");
+            if (Integrity.ComputeCrc(headerBytes, 8, 471) != h1.dwCRCPartial)
+                throw new XstException("Unicode PST header partial CRC is invalid");
+            if (Integrity.ComputeCrc(headerBytes, 8, 516) != h2.dwCRCFull)
+                throw new XstException("Unicode PST header full CRC is invalid");
+        }
+
+        private void ValidateAnsiHeader(byte[] header1Bytes, byte[] header2Bytes)
+        {
+            var headerBytes = new byte[header1Bytes.Length + header2Bytes.Length];
+            Array.Copy(header1Bytes, 0, headerBytes, 0, header1Bytes.Length);
+            Array.Copy(header2Bytes, 0, headerBytes, header1Bytes.Length, header2Bytes.Length);
+
+            var h1 = Map.MapType<FileHeader1>(header1Bytes);
+            var h2 = Map.MapType<FileHeader2ANSI>(header2Bytes);
+            if (h2.bSentinel != 0x80)
+                throw new XstException("ANSI PST header sentinel is invalid");
+            if (Integrity.ComputeCrc(headerBytes, 8, 471) != h1.dwCRCPartial)
+                throw new XstException("ANSI PST header partial CRC is invalid");
+        }
+
+        private void ValidatePage(byte[] pageBytes, ulong fileOffset, bool isUnicode)
+        {
+            if (isUnicode)
+            {
+                var page = Map.MapType<BTPAGEUnicode>(pageBytes);
+                if (page.pageTrailer.ptype != page.pageTrailer.ptypeRepeat)
+                    throw new XstException("Unicode page trailer type mismatch");
+                if (Integrity.ComputeCrc(pageBytes, 0, pageBytes.Length - Marshal.SizeOf(typeof(PAGETRAILERUnicode))) != page.pageTrailer.dwCRC)
+                    throw new XstException("Unicode page CRC is invalid");
+                if (page.pageTrailer.wSig != ComputePageSignature(fileOffset, page.pageTrailer.ptype, page.pageTrailer.bid))
+                    throw new XstException("Unicode page signature is invalid");
+            }
+            else
+            {
+                var page = Map.MapType<BTPAGEANSI>(pageBytes);
+                if (page.pageTrailer.ptype != page.pageTrailer.ptypeRepeat)
+                    throw new XstException("ANSI page trailer type mismatch");
+                if (Integrity.ComputeCrc(pageBytes, 0, pageBytes.Length - Marshal.SizeOf(typeof(PAGETRAILERANSI))) != page.pageTrailer.dwCRC)
+                    throw new XstException("ANSI page CRC is invalid");
+                if (page.pageTrailer.wSig != ComputePageSignature(fileOffset, page.pageTrailer.ptype, page.pageTrailer.bid))
+                    throw new XstException("ANSI page signature is invalid");
+            }
+        }
+
+        private ushort ComputePageSignature(ulong fileOffset, Eptype pageType, ulong bid)
+        {
+            if (pageType == Eptype.ptypeFMap || pageType == Eptype.ptypePMap || pageType == Eptype.ptypeAMap || pageType == Eptype.ptypeFPMap)
+                return 0x0000;
+
+            return Integrity.ComputeSignature(fileOffset, bid);
+        }
+
+        private void ValidateBlock(byte[] blockBytes, ulong fileOffset, int dataLength, bool isUnicode, ulong bid, byte[] buffer, int offset, bool decryptForCrc)
+        {
+            if (isUnicode)
+            {
+                var trailerOffset = blockBytes.Length - Marshal.SizeOf(typeof(BLOCKTRAILERUnicode));
+                var trailer = Map.MapType<BLOCKTRAILERUnicode>(blockBytes, trailerOffset);
+                if (trailer.cb != dataLength)
+                    throw new XstException("Unicode block length trailer is invalid");
+                if (trailer.bid != bid)
+                    throw new XstException("Unicode block BID trailer is invalid");
+                if (trailer.wSig != Integrity.ComputeSignature(fileOffset, trailer.bid))
+                    throw new XstException("Unicode block signature is invalid");
+
+                var decodedData = new byte[dataLength];
+                Array.Copy(buffer, offset, decodedData, 0, dataLength);
+                if (decryptForCrc)
+                    Decrypt(ref decodedData, (UInt32)(bid & 0xffffffff));
+                if (Integrity.ComputeCrc(decodedData, 0, decodedData.Length) != trailer.dwCRC)
+                    throw new XstException("Unicode block CRC is invalid");
+            }
+            else
+            {
+                var trailerOffset = blockBytes.Length - Marshal.SizeOf(typeof(BLOCKTRAILERANSI));
+                var trailer = Map.MapType<BLOCKTRAILERANSI>(blockBytes, trailerOffset);
+                if (trailer.cb != dataLength)
+                    throw new XstException("ANSI block length trailer is invalid");
+                if (trailer.bid != (UInt32)bid)
+                    throw new XstException("ANSI block BID trailer is invalid");
+                if (trailer.wSig != Integrity.ComputeSignature(fileOffset, trailer.bid))
+                    throw new XstException("ANSI block signature is invalid");
+
+                var decodedData = new byte[dataLength];
+                Array.Copy(buffer, offset, decodedData, 0, dataLength);
+                if (decryptForCrc)
+                    Decrypt(ref decodedData, (UInt32)(bid & 0xffffffff));
+                if (Integrity.ComputeCrc(decodedData, 0, decodedData.Length) != trailer.dwCRC)
+                    throw new XstException("ANSI block CRC is invalid");
             }
         }
         #endregion

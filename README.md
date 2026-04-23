@@ -2,7 +2,12 @@
 
 Xst Reader is an open source reader for Microsoft Outlook `.ost` and `.pst` files, written entirely in C# and now modernized to `.NET 10`.
 
-Current version: `2.0`
+This repository is a fork of the original XstReader project by Dijji:
+[Dijji/XstReader](https://github.com/Dijji/XstReader).
+
+The original codebase, application design, and PST/OST reader implementation were created by Dijji. This fork continues that work with modernization, packaging, and compatibility updates.
+
+Current version: `2.1`
 
 It includes:
 
@@ -13,11 +18,17 @@ The project has no dependency on Microsoft Office components.
 
 ![Xst Reader screenshot](screenshot5.png)
 
+## Project Lineage
+
+The upstream project was authored by Dijji and published at [Dijji/XstReader](https://github.com/Dijji/XstReader).
+
+This repository is a maintained fork of that codebase. It keeps the original reader/exporter model intact while updating the implementation for modern .NET and current Windows packaging.
+
 ## What Changed From The Original .NET Framework 4 Project
 
 The original project was built around `.NET Framework 4` and older-style Visual Studio project files. This repository has now been updated to a modern SDK-style layout and `.NET 10`.
 
-Version `2.0` is the line in the sand for that modernization. It is the first version in this repository that represents the move away from the original `.NET Framework 4` application model.
+Version `2.0` was the line in the sand for that modernization. Version `2.1` builds on that work with parser/spec alignment updates.
 
 The main changes are:
 
@@ -133,8 +144,12 @@ Xst Reader is based on Microsoft’s documentation of the Outlook file formats i
 
 The original motivation for the project was simple: open `.ost` files without Outlook. That remains one of the main reasons the tool is useful.
 
+Credit for the original XstReader application and parser belongs to Dijji. This fork builds on that foundation.
+
 ## Release History
 
+- `2.1`
+  Follow-on maintenance release: updated the PST parser to better align with the current MS-PST specification where relevant, including stricter integrity checks, broader supported header/version handling, improved `PtypString8` decoding, generic BTH key-size handling, clearer WIP-protected PST messaging, and refreshed packaging/metadata cleanup
 - `2.0`
   Major modernization release: migrated from `.NET Framework 4` to `.NET 10`, converted to SDK-style projects, removed the separate `XstPortableExport` project, added self-contained single-file packaging, replaced legacy desktop settings/config handling, and fixed modern runtime compatibility issues uncovered during real PST validation
 - `1.14`
