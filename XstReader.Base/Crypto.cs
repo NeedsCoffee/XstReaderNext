@@ -104,7 +104,7 @@ namespace XstReader
                     }
 
                 case EbCryptMethod.NDB_CRYPT_EDPCRYPTED:
-                    throw new XstException("This PST is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
+                    throw new XstException("This OST/PST file is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
 
                 default:
                     throw new XstException("Encryption method not known");

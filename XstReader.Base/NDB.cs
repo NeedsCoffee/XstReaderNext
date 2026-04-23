@@ -13,6 +13,11 @@ namespace XstReader
     /// </summary>
     class NDB
     {
+        private const UInt16 FormatVersionAnsiOutlook97To2002 = 0x0e;
+        private const UInt16 FormatVersionAnsiOutlook2002 = 0x0f;
+        private const UInt16 FormatVersionUnicode = 0x17;
+        private const UInt16 FormatVersionUnicode4K = 0x24;
+
         private string fullName;
         private EbCryptMethod bCryptMethod;
         private BTree<Node> nodeTree = new BTree<Node>();
@@ -182,9 +187,9 @@ namespace XstReader
                 if (h.wMagicClient != 0x4d53)
                     throw new XstException("File is not a .ost or .pst file: the client magic is invalid");
                 if (h.bPlatformCreate != 0x01 || h.bPlatformAccess != 0x01)
-                    throw new XstException("PST header platform markers are invalid");
+                    throw new XstException("OST/PST header platform markers are invalid");
 
-                if (h.wVer == 0x24)
+                if (IsUnicode4KFormat(h.wVer))
                 {
                     // This value indicates the use of 4K pages, as opposed to 512 bytes
                     // It is used only in .ost files, and was introduced in Office 2013
@@ -195,10 +200,12 @@ namespace XstReader
                     bCryptMethod = h2.bCryptMethod;
                     IsUnicode = true;
                     IsUnicode4K = true;
+                    if (bCryptMethod == EbCryptMethod.NDB_CRYPT_EDPCRYPTED)
+                        throw new XstException("This OST/PST file is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
                     ReadBTPageUnicode4K(fs, h2.root.BREFNBT.ib, nodeTree.Root);
                     ReadBTPageUnicode4K(fs, h2.root.BREFBBT.ib, dataTree.Root);
                 }
-                else if (h.wVer >= 0x17)
+                else if (IsUnicodeFormat(h.wVer))
                 {
                     var h2Bytes = new byte[Marshal.SizeOf(typeof(FileHeader2Unicode))];
                     fs.ReadExactly(h2Bytes, 0, h2Bytes.Length);
@@ -207,11 +214,11 @@ namespace XstReader
                     bCryptMethod = h2.bCryptMethod;
                     IsUnicode = true;
                     if (bCryptMethod == EbCryptMethod.NDB_CRYPT_EDPCRYPTED)
-                        throw new XstException("This PST is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
+                        throw new XstException("This OST/PST file is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
                     ReadBTPageUnicode(fs, h2.root.BREFNBT.ib, nodeTree.Root);
                     ReadBTPageUnicode(fs, h2.root.BREFBBT.ib, dataTree.Root);
                 }
-                else if (h.wVer == 0x0e || h.wVer == 0x0f)
+                else if (IsAnsiFormat(h.wVer))
                 {
                     var h2Bytes = new byte[Marshal.SizeOf(typeof(FileHeader2ANSI))];
                     fs.ReadExactly(h2Bytes, 0, h2Bytes.Length);
@@ -220,13 +227,28 @@ namespace XstReader
                     bCryptMethod = h2.bCryptMethod;
                     IsUnicode = false;
                     if (bCryptMethod == EbCryptMethod.NDB_CRYPT_EDPCRYPTED)
-                        throw new XstException("This PST is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
+                        throw new XstException("This OST/PST file is protected with Windows Information Protection (WIP). Open it on the managed Windows device and account that owns it, or decrypt/export it with Outlook or enterprise admin tooling before using XstReader.");
                     ReadBTPageANSI(fs, h2.root.BREFNBT.ib, nodeTree.Root);
                     ReadBTPageANSI(fs, h2.root.BREFBBT.ib, dataTree.Root);
                 }
                 else
-                    throw new XstException("Unrecognised header type");
+                    throw new XstException($"Unrecognised OST/PST header version 0x{h.wVer:x4}");
             }
+        }
+
+        private static bool IsUnicode4KFormat(UInt16 version)
+        {
+            return version == FormatVersionUnicode4K;
+        }
+
+        private static bool IsUnicodeFormat(UInt16 version)
+        {
+            return version >= FormatVersionUnicode;
+        }
+
+        private static bool IsAnsiFormat(UInt16 version)
+        {
+            return version == FormatVersionAnsiOutlook97To2002 || version == FormatVersionAnsiOutlook2002;
         }
 
         // A callback to be used when searching a tree to read part of the index whose loading has been deferred
@@ -453,7 +475,7 @@ namespace XstReader
             else
             {
                 // Key for cyclic algorithm is the low 32 bits of the BID, so supply it in case it's needed
-                Decrypt(ref buffer, (UInt32)(dataBid & 0xffff));
+                Decrypt(ref buffer, (UInt32)(dataBid & 0xffffffff));
 
                 yield return buffer;
             }
@@ -520,7 +542,7 @@ namespace XstReader
             {
                 // Key for cyclic algorithm is the low 32 bits of the BID
                 // Assume that this means the BID of each block, rather than all using the BID from the head of the tree
-                Decrypt(ref buffer, (UInt32)(dataBid & 0xffff), offset, read);
+                Decrypt(ref buffer, (UInt32)(dataBid & 0xffffffff), offset, read);
 
                 // Increment the offset by the length of the real data that we have read
                 offset += read;
@@ -667,11 +689,11 @@ namespace XstReader
             var h1 = Map.MapType<FileHeader1>(header1Bytes);
             var h2 = Map.MapType<FileHeader2Unicode>(header2Bytes);
             if (h2.bSentinel != 0x80)
-                throw new XstException("Unicode PST header sentinel is invalid");
+                throw new XstException("Unicode OST/PST header sentinel is invalid");
             if (Integrity.ComputeCrc(headerBytes, 8, 471) != h1.dwCRCPartial)
-                throw new XstException("Unicode PST header partial CRC is invalid");
+                throw new XstException("Unicode OST/PST header partial CRC is invalid");
             if (Integrity.ComputeCrc(headerBytes, 8, 516) != h2.dwCRCFull)
-                throw new XstException("Unicode PST header full CRC is invalid");
+                throw new XstException("Unicode OST/PST header full CRC is invalid");
         }
 
         private void ValidateAnsiHeader(byte[] header1Bytes, byte[] header2Bytes)
@@ -683,9 +705,9 @@ namespace XstReader
             var h1 = Map.MapType<FileHeader1>(header1Bytes);
             var h2 = Map.MapType<FileHeader2ANSI>(header2Bytes);
             if (h2.bSentinel != 0x80)
-                throw new XstException("ANSI PST header sentinel is invalid");
+                throw new XstException("ANSI OST/PST header sentinel is invalid");
             if (Integrity.ComputeCrc(headerBytes, 8, 471) != h1.dwCRCPartial)
-                throw new XstException("ANSI PST header partial CRC is invalid");
+                throw new XstException("ANSI OST/PST header partial CRC is invalid");
         }
 
         private void ValidatePage(byte[] pageBytes, ulong fileOffset, bool isUnicode)
