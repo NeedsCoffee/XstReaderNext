@@ -530,7 +530,7 @@ namespace XstReader
                     if (buffer == null)
                         buffer = new byte[rb.InflatedLength];
 
-                    decompressionStream.Read(buffer, offset, rb.InflatedLength);
+                    decompressionStream.ReadExactly(buffer, offset, checked((int)rb.InflatedLength));
                 }
                 read = rb.InflatedLength;
             }
@@ -539,7 +539,7 @@ namespace XstReader
                 if (buffer == null)
                     buffer = new byte[rb.Length];
                 fs.Seek((long)rb.Offset, SeekOrigin.Begin);
-                fs.Read(buffer, offset, rb.Length);
+                fs.ReadExactly(buffer, offset, checked((int)rb.Length));
                 read = rb.Length;
             }
 

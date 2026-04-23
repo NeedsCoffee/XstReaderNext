@@ -1,29 +1,22 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-/bin
-/obj
-/.vs
-/.cr
-/Releases
-/documents
-/PstFileAttachmentExporter/bin
-/PstFileAttachmentExporter/obj
-/XstReader.Core/bin
-/XstReader.Core/obj
-/XstReader.csproj.user
-.vs/XstReader/v16/.suo
-/XstExport/bin/Debug
-/XstExport/obj/Debug
+# Visual Studio / MSBuild
+/.vs/
 *.user
-/XstExport/bin/Release
-/XstExport/obj/Release
-/XstPortableExport/bin/Debug/netcoreapp2.1
-/XstPortableExport/obj
-/XstPortableExport/Properties/launchSettings.json
-/XstReader.Base/bin
-/XstReader.Base/obj
+*.suo
+*.userosscache
+*.sln.docstates
+*.csproj.user
+
+# Build output
+**/bin/
+**/obj/
+/dist/
+/dist-build/
+/publish/
+/publish-tests/
+/publish-trimmed/
+/Releases/
+
+# Legacy repo-specific generated output
+/.cr/
+/documents/
 /docs/Command line tests.txt
-/XstPortableExport/bin/Release/netcoreapp2.1
-/XstPortableExport/Properties/PublishProfiles

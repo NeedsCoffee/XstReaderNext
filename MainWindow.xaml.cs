@@ -26,6 +26,7 @@ namespace XstReader
         private View view = new View();
         private XstFile xstFile = null;
         private List<string> tempFileNames = new List<string>();
+        private readonly AppSettings settings = AppSettings.Load();
         private int searchIndex = -1;
 
         public MainWindow()
@@ -41,12 +42,12 @@ namespace XstReader
             searchTextBox.SectionsList = new List<string> { "Subject", "From/To", "Date", "Cc", "Bcc" };
             searchTextBox.SectionsInitiallySelected = new List<bool> { true, true, true, false, false };
 
-            if (Properties.Settings.Default.Top != 0.0)
+            if (settings.Top != 0.0)
             {
-                this.Top = Properties.Settings.Default.Top;
-                this.Left = Properties.Settings.Default.Left;
-                this.Height = Properties.Settings.Default.Height;
-                this.Width = Properties.Settings.Default.Width;
+                this.Top = settings.Top;
+                this.Left = settings.Left;
+                this.Height = settings.Height;
+                this.Width = settings.Width;
             }
         }
 
@@ -655,15 +656,15 @@ namespace XstReader
 
             dialog.Filter = "xst files (*.ost;*.pst)|*.ost;*.pst|All files (*.*)|*.*";
             dialog.FilterIndex = 1;
-            dialog.InitialDirectory = Properties.Settings.Default.LastFolder;
+            dialog.InitialDirectory = settings.LastFolder;
             if (dialog.InitialDirectory == "")
                 dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             dialog.RestoreDirectory = true;
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Properties.Settings.Default.LastFolder = Path.GetDirectoryName(dialog.FileName);
-                Properties.Settings.Default.Save();
+                settings.LastFolder = Path.GetDirectoryName(dialog.FileName);
+                settings.Save();
                 return dialog.FileName;
             }
             else
@@ -677,15 +678,15 @@ namespace XstReader
 
             dialog.Description = "Choose folder for saving attachments";
             dialog.RootFolder = Environment.SpecialFolder.MyComputer;
-            dialog.SelectedPath = Properties.Settings.Default.LastAttachmentFolder;
+            dialog.SelectedPath = settings.LastAttachmentFolder;
             if (dialog.SelectedPath == "")
                 dialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             dialog.ShowNewFolderButton = true;
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Properties.Settings.Default.LastAttachmentFolder = dialog.SelectedPath;
-                Properties.Settings.Default.Save();
+                settings.LastAttachmentFolder = dialog.SelectedPath;
+                settings.Save();
                 return dialog.SelectedPath;
             }
             else
@@ -697,7 +698,7 @@ namespace XstReader
             var dialog = new System.Windows.Forms.SaveFileDialog();
 
             dialog.Title = "Specify file to save to";
-            dialog.InitialDirectory = Properties.Settings.Default.LastAttachmentFolder;
+            dialog.InitialDirectory = settings.LastAttachmentFolder;
             if (dialog.InitialDirectory == "")
                 dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             dialog.Filter = "All Files (*.*)|*.*";
@@ -705,8 +706,8 @@ namespace XstReader
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Properties.Settings.Default.LastAttachmentFolder = Path.GetDirectoryName(dialog.FileName);
-                Properties.Settings.Default.Save();
+                settings.LastAttachmentFolder = Path.GetDirectoryName(dialog.FileName);
+                settings.Save();
                 return dialog.FileName;
             }
             else
@@ -720,15 +721,15 @@ namespace XstReader
 
             dialog.Description = "Choose folder to export emails into";
             dialog.RootFolder = Environment.SpecialFolder.MyComputer;
-            dialog.SelectedPath = Properties.Settings.Default.LastExportFolder;
+            dialog.SelectedPath = settings.LastExportFolder;
             if (dialog.SelectedPath == "")
                 dialog.SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             dialog.ShowNewFolderButton = true;
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Properties.Settings.Default.LastExportFolder = dialog.SelectedPath;
-                Properties.Settings.Default.Save();
+                settings.LastExportFolder = dialog.SelectedPath;
+                settings.Save();
                 return dialog.SelectedPath;
             }
             else
@@ -740,7 +741,7 @@ namespace XstReader
             var dialog = new System.Windows.Forms.SaveFileDialog();
 
             dialog.Title = "Specify file to save to";
-            dialog.InitialDirectory = Properties.Settings.Default.LastExportFolder;
+            dialog.InitialDirectory = settings.LastExportFolder;
             if (dialog.InitialDirectory == "")
                 dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             dialog.Filter = String.Format("{0} Files (*.{0})|*.{0}|All Files (*.*)|*.*", extension);
@@ -748,8 +749,8 @@ namespace XstReader
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Properties.Settings.Default.LastExportFolder = Path.GetDirectoryName(dialog.FileName);
-                Properties.Settings.Default.Save();
+                settings.LastExportFolder = Path.GetDirectoryName(dialog.FileName);
+                settings.Save();
                 return dialog.FileName;
             }
             else
@@ -761,7 +762,7 @@ namespace XstReader
             var dialog = new System.Windows.Forms.SaveFileDialog();
 
             dialog.Title = "Specify properties export file";
-            dialog.InitialDirectory = Properties.Settings.Default.LastExportFolder;
+            dialog.InitialDirectory = settings.LastExportFolder;
             if (dialog.InitialDirectory == "")
                 dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             dialog.Filter = "csv files (*.csv)|*.csv";
@@ -769,8 +770,8 @@ namespace XstReader
 
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Properties.Settings.Default.LastExportFolder = Path.GetDirectoryName(dialog.FileName);
-                Properties.Settings.Default.Save();
+                settings.LastExportFolder = Path.GetDirectoryName(dialog.FileName);
+                settings.Save();
                 return dialog.FileName;
             }
             else
@@ -794,19 +795,19 @@ namespace XstReader
             if (WindowState == WindowState.Maximized)
             {
                 // Use the RestoreBounds as the current values will be 0, 0 and the size of the screen
-                Properties.Settings.Default.Top = RestoreBounds.Top;
-                Properties.Settings.Default.Left = RestoreBounds.Left;
-                Properties.Settings.Default.Height = RestoreBounds.Height;
-                Properties.Settings.Default.Width = RestoreBounds.Width;
+                settings.Top = RestoreBounds.Top;
+                settings.Left = RestoreBounds.Left;
+                settings.Height = RestoreBounds.Height;
+                settings.Width = RestoreBounds.Width;
             }
             else
             {
-                Properties.Settings.Default.Top = this.Top;
-                Properties.Settings.Default.Left = this.Left;
-                Properties.Settings.Default.Height = this.Height;
-                Properties.Settings.Default.Width = this.Width;
+                settings.Top = this.Top;
+                settings.Left = this.Left;
+                settings.Height = this.Height;
+                settings.Width = this.Width;
             }
-            Properties.Settings.Default.Save();
+            settings.Save();
         }
 
         private string SaveAttachmentToTemporaryFile(Attachment a)

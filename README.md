@@ -1,106 +1,155 @@
 # Xst Reader
-Xst Reader is an open source viewer for Microsoft Outlook’s .ost and .pst files, written entirely in C#, requiring only .Net Framework 4, and with no dependency on any Microsoft Office components.
 
-It presents as a simple, classic, three pane mail viewer:
+Xst Reader is an open source reader for Microsoft Outlook `.ost` and `.pst` files, written entirely in C# and now modernized to `.NET 10`.
 
-![](screenshot5.png)
+It includes:
 
-Xst Reader goes beyond Outlook in that it will allow you to open .ost files, which are the caches created by Outlook to hold a local copy of a mailbox. Wanting to read an .ost file as the original motivation for this project: now it also as the ability to export the header and body of an email in its native format (plain text, HTML, or rich text), and inspect and export all the properties of an email.
+- `XstReader`: a Windows desktop viewer for browsing mail, recipients, attachments, and message properties
+- `XstExport`: a command-line exporter for emails, attachments, and CSV property dumps
 
-It requires only .Net Framework 4, which is installed by default on Windows 8.1 and later, but will need to be installed on Windows 7 and earlier systems before Xst Reader can be run.  .Net Framework 4 can be downloaded from <https://www.microsoft.com/en-us/download/details.aspx?id=17851>
+The project has no dependency on Microsoft Office components.
 
-Xst Reader is based on Microsoft’s documentation of the Outlook file formats in [MS-PST], first published in 2010 as part of the anti-trust settlement with the DOJ and the EU: <https://msdn.microsoft.com/en-us/library/ff385210(v=office.12).aspx>
+![Xst Reader screenshot](screenshot5.png)
 
-## XstExport
+## What Changed From The Original .NET Framework 4 Project
 
-A command line tool for exporting emails, attachments or properties from an Outlook file.
+The original project was built around `.NET Framework 4` and older-style Visual Studio project files. This repository has now been updated to a modern SDK-style layout and `.NET 10`.
 
-By default, all folders in the Outlook file are exported into a directory structure that mirrors the Outlook folder structure. Options are available to specify the starting Outlook folder and to collapse all output into a single directory.
+The main changes are:
 
-The differences from the export capabilities of the UI are: the ability to export from a subtree of Outlook folders; and the ability to export attachments only, without the body of the email.
+- the solution now uses SDK-style `.csproj` files instead of legacy .NET Framework project files
+- the desktop app now targets `net10.0-windows`
+- the command-line exporter now targets `net10.0`
+- the old separate `XstPortableExport` project has been removed because `XstExport` is now the portable CLI
+- the desktop app no longer depends on the old `Properties.Settings` / `App.config` setup; it now uses a small JSON-backed settings file
+- release builds can now be produced as self-contained single-file executables
+- the shared parsing code was updated to work cleanly with modern trimming and modern stream-read correctness rules
+- exporter compatibility issues found during real PST testing on `.NET 10` were fixed, including legacy code page handling and stricter numeric conversions
 
-In addition to XstExport, XstPortableExport is also provided, which is a portable version based on .Net Core 2.1 that can be run on Windows, Mac, Linux etc. 
+What did not change:
 
-Both versions support the following options:
+- the core PST/OST reading model and feature set remain based on the original project
+- `XstReader` is still the Windows desktop UI
+- `XstExport` still exports native email bodies (`.html`, `.rtf`, `.txt`), attachments, and CSV properties
 
-   XstExport.exe {-e|-p|-a|-h} [-f=`<Outlook folder>`] [-o] [-s] [-t=`<target directory>`] `<Outlook file name>`
+## Current Runtime Model
+
+- `XstReader` targets `net10.0-windows`
+- `XstExport` targets `net10.0`
+- `XstReader.Base` multi-targets `net10.0` and `net10.0-windows`
+
+In practice this means:
+
+- the desktop viewer is Windows-only
+- the CLI exporter is the cross-platform-oriented build target in the source tree
+- release packages in `dist/` are currently prepared as `win-x64` self-contained executables
+
+## Features
+
+`XstReader` provides:
+
+- three-pane Outlook-style browsing
+- viewing of plain text, HTML, and RTF message bodies
+- recipient and attachment inspection
+- message property inspection
+- export of messages and attachments from the UI
+- support for signed or encrypted message handling when the required certificate material is available
+
+`XstExport` provides:
+
+- export of email bodies in native format
+- export of attachments only
+- export of message properties to CSV
+- export from the whole mailbox or from a selected subtree
+- optional preservation of Outlook subfolder structure
+
+## XstExport Usage
+
+```text
+XstExport.exe {-e|-p|-a|-h} [-f=<Outlook folder>] [-o] [-s] [-t=<target directory>] <Outlook file name>
+```
 
 Where:
 
-   -e, --email  
-      Export in native body format (.html, .rtf, .txt)
-      with attachments in associated folder   
-   -- OR --   
-   -p, --properties  
-      Export properties only (in CSV file)   
-   -- OR --   
-   -a, --attachments  
-      Export attachments only
-      (Latest date wins in case of name conflict)  
-   -- OR --  
-   -h, --help  
-      Display this help
+- `-e`, `--email`
+  Export in native body format (`.html`, `.rtf`, `.txt`) with attachments in an associated folder
+- `-p`, `--properties`
+  Export properties only in CSV format
+- `-a`, `--attachments`
+  Export attachments only
+- `-h`, `--help`
+  Display help
+- `-f=<Outlook folder>`, `--folder=<Outlook folder>`
+  Export from a specific Outlook folder or subtree, for example `Week1\Sent`
+- `-o`, `--only`
+  Export only the nominated folder, not its subfolders
+- `-s`, `--subfolders`
+  Preserve Outlook subfolder structure in the output
+- `-t=<target directory>`, `--target=<target directory>`
+  Write output to a specific target directory
 
-   -f=`<Outlook folder>`, -folder=`<Outlook folder>`  
-      Folder within the Outlook file from which to export.
-      This may be a partial path, for example "Week1\Sent"
+## Release Artifacts
 
-   -o, --only  
-      If set, do not export from subfolders of the nominated folder.
+The current ready-to-ship Windows packages are produced into [dist](dist):
 
-   -s, --subfolders  
-      If set, Outlook subfolder structure is preserved.
-      Otherwise, all output goes to a single directory
+- `XstReader.exe`
+- `XstReader-win-x64.zip`
+- `XstExport.exe`
+- `XstExport-win-x64.zip`
 
-   -t=`<target directory name>`, --target=`<target directory name>`  
-      The directory to which output is written. This may be an
-      absolute path or one relative to the location of the Outlook file.
-      By default, output is written to a directory `<Outlook file name>.Export.<Command>`
-      created in the same directory as the Outlook file
+These are self-contained single-file executables, so they do not require a separate .NET runtime installation on the target machine.
 
-   `<Outlook file name>`  
-      The full name of the .pst or .ost file from which to export
+Runtime behavior note:
 
-To run the portable version, open a command line and run:
+- `XstReader` creates a user settings file under `%LocalAppData%\XstReader\settings.json` after first launch
+- `XstExport` writes exported mail/attachment output wherever you point it
 
-dotnet XstPortableExport.dll `<options as above>`
+## Building
 
-## Installation
+See [HowToBuild.md](HowToBuild.md) for build details.
 
-To install a binary:
-1.	Choose a release, then download the XstReader.zip file attached to it.
-2.	Extract the contents of the zip file to a programs folder.
-3.	Run XstReader.exe, and create shortcuts to it as required.
+At a high level:
 
-## Notes for developers
-* The provided Visual Studio solution includes a XstReader.Base project, which contains all the basic common functionality for reading Outlook files used by XstReader and XstExport. The project builds a DLL, which you can use to add the same capability to your own projects. XstReader and XstExport do not themselves use the DLL, instead, they simply include the code from the XstReader.Base directory, in order to create executables with minimum dependencies.
-* The XstPortableExport project builds a portable version of XstExport based on .Net Core 2.1. However, in order to remain portable, two areas of functionality have to be #ifdef'd out in order not to create a framework dependency and so tie the program to Windows. These are support for RTF body formats, and support for MIME decryption.
+```powershell
+dotnet build XstReader.sln
+dotnet run --project XstReader.csproj
+dotnet run --project XstExport\XstExport.csproj -- --help
+```
+
+## Notes For Developers
+
+- `XstReader.Base` contains the shared PST/OST parsing functionality used by both the desktop app and the CLI exporter
+- the Windows target keeps the WPF-specific desktop integration
+- the `net10.0` target is what `XstExport` consumes
+- the repo intentionally keeps `test/` out of cleanup passes because it is used for real PST validation
+
+## Background
+
+Xst Reader is based on Microsoft’s documentation of the Outlook file formats in [MS-PST](https://msdn.microsoft.com/en-us/library/ff385210(v=office.12).aspx), first published in 2010 as part of the anti-trust settlement with the DOJ and the EU.
+
+The original motivation for the project was simple: open `.ost` files without Outlook. That remains one of the main reasons the tool is useful.
+
 ## Release History
 
-* 1.14
-    * Added command line tool for exporting email contents, attachments, or properties. Both Windows and cross-platform versions are provided.
-* 1.12
-    * Added support for viewing encrypted or signed messages and their attachments if matching certificate is in user certificate store. (Does not perform signature verification)
-* 1.8
-    * Allow searching within Cc and Bcc names
-    * Show email time as well as date in list of emails in folder
-    * Add an Info button in the bottom right-hand corner of the main window
-* 1.7
-    * Allow the contents of emails to be exported. Individual emails, multiple selected emails, or whole folders of emails may be exported. The results have the same format as the email, i.e. either HTML, Rich text format, or plain text.  
-* 1.6
-    * Allow searching through the listed message headers, looking for a given text
-* 1.4
-    * Can export message, contact et cetera properties to a CSV file 
-* 1.2
-    * Show inline attachments in the HTML body 
-* 1.1
-    * Add support for showing Recipient and Attachment properties
-* 1.0
-    * The first release
+- `1.14`
+  Added command-line export of email contents, attachments, and properties
+- `1.12`
+  Added support for viewing encrypted or signed messages and attachments when matching certificate material is available
+- `1.8`
+  Added searching within `Cc` and `Bcc`, improved message time display, and added the Info button
+- `1.7`
+  Added export of email contents from the UI
+- `1.6`
+  Added searching through listed message headers
+- `1.4`
+  Added CSV export of message and related properties
+- `1.2`
+  Added inline attachment display in HTML bodies
+- `1.1`
+  Added Recipient and Attachment property display
+- `1.0`
+  First release
 
-## Meta
+## License
 
-Distributed under the MS-PL license. See [license](license.md) for more information.
-
-
-
+Distributed under the MS-PL license. See [license.md](license.md) for more information.

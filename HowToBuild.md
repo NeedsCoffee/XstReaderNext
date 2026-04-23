@@ -1,8 +1,65 @@
-Two things are required to build the project: the source code and the tool to build it with. 
-- The source code can be obtained from [github.com/Dijji/XstReader>](<https://github.com/Dijji/XstReader>) using the 'Clone or Download' button to download the zip file, and unpacking the whole XstReader file structure into a working area on your PC.
+## Build Prerequisites
 
-- The tool can be obtained by downloading and installing VisualStudio Community from [visualstudio.microsoft.com](https://visualstudio.microsoft.com/). By default, this will include support for C# development, which is what this project needs.
+- .NET SDK `10.0` or later
+- Windows for the WPF desktop app (`XstReader`)
 
-Once installed, double click XstReader.sln in the root folder of the source code to open the project in Visual Studio.
+## What Is In The Solution
 
-At this point, you should be able to build the solution (Build/Build Solution in the Visual Studio menus), and run it from within Visual Studio (Debug/Start Debugging).
+- `XstReader`
+  Windows desktop viewer targeting `net10.0-windows`
+- `XstExport`
+  Command-line exporter targeting `net10.0`
+- `XstReader.Base`
+  Shared PST/OST parsing library used by both apps
+
+Compared with the original `.NET Framework 4` codebase:
+
+- the projects are now SDK-style
+- the separate `XstPortableExport` project is gone
+- `XstExport` is now the single CLI exporter project
+- the desktop app uses JSON-backed local settings instead of the old `App.config` / `Properties.Settings` model
+
+## Build The Solution
+
+```powershell
+dotnet build XstReader.sln
+```
+
+## Run From Source
+
+Desktop app:
+
+```powershell
+dotnet run --project XstReader.csproj
+```
+
+Command-line exporter:
+
+```powershell
+dotnet run --project XstExport\XstExport.csproj -- --help
+```
+
+Example exporter run:
+
+```powershell
+dotnet run --project XstExport\XstExport.csproj -- -e C:\mail\archive.pst
+```
+
+## Create Release Packages
+
+The current release process produces self-contained single-file `win-x64` executables for:
+
+- `XstReader.exe`
+- `XstExport.exe`
+
+Those release artifacts are collected into `dist/`.
+
+## Verification Notes
+
+Recent modernization work also included:
+
+- fixing code-page registration needed by real PST files on modern .NET
+- fixing stricter numeric conversion issues exposed by real-world PST data
+- fixing partial-read assumptions in low-level stream parsing code
+
+So if you are validating a migration from the original `.NET Framework 4` version, use a real `.pst` or `.ost` sample rather than only `--help` smoke tests.

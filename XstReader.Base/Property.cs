@@ -128,7 +128,7 @@ namespace XstReader
     // Property getters are used to specify which properties should be retrieved from a property context
     // or table context, and where they should be stored.
     // T is the target object, Action arguments are target object, column value 
-    class PropertyGetters<T> : Dictionary<EpropertyTag, Action<T, dynamic>>
+    class PropertyGetters<T> : Dictionary<EpropertyTag, Action<T, object>>
     {
     }
 
@@ -145,7 +145,7 @@ namespace XstReader
     {
 
         public EpropertyTag Tag { get; set; }
-        public dynamic Value { get; set; }
+        public object Value { get; set; }
 
         // Standard properties have a Tag value less than 0x8000,
         // and identify a particular property
@@ -261,7 +261,7 @@ namespace XstReader
         public int Size { get; set; }
         internal NID Nid { get; set; }
         internal AttachMethods AttachMethod { get; set; }
-        internal dynamic Content { get; set; }
+        internal object Content { get; set; }
         public bool IsFile { get { return AttachMethod == AttachMethods.afByValue; } }
         public bool IsEmail { get { return /*AttachMethod == AttachMethods.afStorage ||*/ AttachMethod == AttachMethods.afEmbeddedMessage; } }
         public bool WasRenderedInline { get; set; } = false;

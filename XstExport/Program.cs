@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using NDesk.Options;
 using XstReader;
 
@@ -67,6 +68,8 @@ namespace XstExport
 
         static int Main(string[] args)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             int commands = 0;
             Command command = Command.Help;
             string outlookFolder = null;
@@ -119,7 +122,7 @@ namespace XstExport
                 {
                     throw new XstExportException
                     {
-                        Description = @"Cannot find Outlook file '{outlookFile}'",
+                        Description = $"Cannot find Outlook file '{outlookFile}'",
                         ErrorCode = WindowsErrorCodes.ERROR_FILE_NOT_FOUND
                     };
                 }
@@ -145,7 +148,7 @@ namespace XstExport
                     {
                         throw new XstExportException
                         {
-                            Description = @"Cannot find folder '{outlookFolder}' in '{outlookFile}'",
+                            Description = $"Cannot find folder '{outlookFolder}' in '{outlookFile}'",
                             ErrorCode = WindowsErrorCodes.ERROR_INVALID_PARAMETER
                         };
                     }

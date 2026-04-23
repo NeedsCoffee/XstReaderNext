@@ -26,13 +26,43 @@ namespace XstReader
         private NDB ndb;
         private LTP ltp;
 
+        private static string AsString(object value) => (string)value;
+        private static uint AsUInt32(object value) => value switch
+        {
+            uint uintValue => uintValue,
+            int intValue when intValue >= 0 => checked((uint)intValue),
+            short shortValue when shortValue >= 0 => checked((uint)shortValue),
+            ushort ushortValue => ushortValue,
+            byte byteValue => byteValue,
+            sbyte sbyteValue when sbyteValue >= 0 => checked((uint)sbyteValue),
+            _ => throw new InvalidCastException($"Unable to cast object of type '{value?.GetType()}' to UInt32.")
+        };
+        private static int AsInt32(object value) => value switch
+        {
+            int intValue => intValue,
+            uint uintValue when uintValue <= int.MaxValue => checked((int)uintValue),
+            short shortValue => shortValue,
+            ushort ushortValue => ushortValue,
+            byte byteValue => byteValue,
+            sbyte sbyteValue => sbyteValue,
+            _ => throw new InvalidCastException($"Unable to cast object of type '{value?.GetType()}' to Int32.")
+        };
+        private static bool AsBool(object value) => (bool)value;
+        private static DateTime? AsNullableDateTime(object value) => (DateTime?)value;
+        private static byte[] AsBytes(object value) => (byte[])value;
+        private static MessageFlags AsMessageFlags(object value) => (MessageFlags)AsInt32(value);
+        private static BodyType AsBodyType(object value) => (BodyType)AsInt32(value);
+        private static RecipientType AsRecipientType(object value) => (RecipientType)AsInt32(value);
+        private static AttachMethods AsAttachMethod(object value) => (AttachMethods)AsInt32(value);
+        private static AttachFlags AsAttachFlags(object value) => (AttachFlags)AsUInt32(value);
+
         // We use sets of PropertyGetters to define the equivalent of queries when reading property sets and tables
 
         // The folder properties we read when exploring folder structure
         private static readonly PropertyGetters<Folder> pgFolder = new PropertyGetters<Folder>
         {
-            {EpropertyTag.PidTagDisplayName, (f, val) => f.Name = val },
-            {EpropertyTag.PidTagContentCount, (f, val) => f.ContentCount = val },
+            {EpropertyTag.PidTagDisplayName, (f, val) => f.Name = AsString(val) },
+            {EpropertyTag.PidTagContentCount, (f, val) => f.ContentCount = AsUInt32(val) },
             // Don't bother reading HasSubFolders, because it is not always set
             // {EpropertyTag.PidTagSubfolders, (f, val) => f.HasSubFolders = val },
         };
@@ -40,71 +70,71 @@ namespace XstReader
         // When reading folder contents, the message properties we ask for
         private static readonly PropertyGetters<Message> pgMessageList = new PropertyGetters<Message>
         {
-            {EpropertyTag.PidTagSubjectW, (m, val) => m.Subject = val },
-            {EpropertyTag.PidTagDisplayCcW, (m, val) => m.Cc = val },
-            {EpropertyTag.PidTagDisplayToW, (m, val) => m.To = val },
-            {EpropertyTag.PidTagMessageFlags, (m, val) => m.Flags = (MessageFlags)val },
-            {EpropertyTag.PidTagSentRepresentingNameW, (m, val) => m.From = val },
-            {EpropertyTag.PidTagClientSubmitTime, (m, val) => m.Submitted = val },
-            {EpropertyTag.PidTagMessageDeliveryTime, (m, val) => m.Received = val },
-            {EpropertyTag.PidTagLastModificationTime, (m, val) => m.Modified = val },
+            {EpropertyTag.PidTagSubjectW, (m, val) => m.Subject = AsString(val) },
+            {EpropertyTag.PidTagDisplayCcW, (m, val) => m.Cc = AsString(val) },
+            {EpropertyTag.PidTagDisplayToW, (m, val) => m.To = AsString(val) },
+            {EpropertyTag.PidTagMessageFlags, (m, val) => m.Flags = AsMessageFlags(val) },
+            {EpropertyTag.PidTagSentRepresentingNameW, (m, val) => m.From = AsString(val) },
+            {EpropertyTag.PidTagClientSubmitTime, (m, val) => m.Submitted = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagMessageDeliveryTime, (m, val) => m.Received = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagLastModificationTime, (m, val) => m.Modified = AsNullableDateTime(val) },
         };
 
         // When reading folder contents, the message properties we ask for
         // In Unicode4K, PidTagSentRepresentingNameW doesn't yield a useful value
         private static readonly PropertyGetters<Message> pgMessageList4K = new PropertyGetters<Message>
         {
-            {EpropertyTag.PidTagSubjectW, (m, val) => m.Subject = val },
-            {EpropertyTag.PidTagDisplayCcW, (m, val) => m.Cc = val },
-            {EpropertyTag.PidTagDisplayToW, (m, val) => m.To = val },
-            {EpropertyTag.PidTagMessageFlags, (m, val) => m.Flags = (MessageFlags)val },
-            {EpropertyTag.PidTagClientSubmitTime, (m, val) => m.Submitted = val },
-            {EpropertyTag.PidTagMessageDeliveryTime, (m, val) => m.Received = val },
-            {EpropertyTag.PidTagLastModificationTime, (m, val) => m.Modified = val },
+            {EpropertyTag.PidTagSubjectW, (m, val) => m.Subject = AsString(val) },
+            {EpropertyTag.PidTagDisplayCcW, (m, val) => m.Cc = AsString(val) },
+            {EpropertyTag.PidTagDisplayToW, (m, val) => m.To = AsString(val) },
+            {EpropertyTag.PidTagMessageFlags, (m, val) => m.Flags = AsMessageFlags(val) },
+            {EpropertyTag.PidTagClientSubmitTime, (m, val) => m.Submitted = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagMessageDeliveryTime, (m, val) => m.Received = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagLastModificationTime, (m, val) => m.Modified = AsNullableDateTime(val) },
         };
 
         private static readonly PropertyGetters<Message> pgMessageDetail4K = new PropertyGetters<Message>
         {
-            {EpropertyTag.PidTagSentRepresentingNameW, (m, val) => m.From = val },
-            {EpropertyTag.PidTagSentRepresentingEmailAddress, (m, val) => { if(m.From == null) m.From = val; } },
-            {EpropertyTag.PidTagSenderName, (m, val) => { if(m.From == null) m.From = val; } },
+            {EpropertyTag.PidTagSentRepresentingNameW, (m, val) => m.From = AsString(val) },
+            {EpropertyTag.PidTagSentRepresentingEmailAddress, (m, val) => { if(m.From == null) m.From = AsString(val); } },
+            {EpropertyTag.PidTagSenderName, (m, val) => { if(m.From == null) m.From = AsString(val); } },
         };
 
         // The properties we read when accessing the contents of a message
         private static readonly PropertyGetters<Message> pgMessageContent = new PropertyGetters<Message>
         {
-            {EpropertyTag.PidTagNativeBody, (m, val) => m.NativeBody = (BodyType)val },
-            {EpropertyTag.PidTagBody, (m, val) => m.Body = val },
+            {EpropertyTag.PidTagNativeBody, (m, val) => m.NativeBody = AsBodyType(val) },
+            {EpropertyTag.PidTagBody, (m, val) => m.Body = AsString(val) },
             //{EpropertyTag.PidTagInternetCodepage, (m, val) => m.InternetCodePage = (int)val },
             // In ANSI format, PidTagHtml is called PidTagBodyHtml (though the tag code is the same), because it is a string rather than a binary value
             // Here, we test the type to determine where to put the value 
-            {EpropertyTag.PidTagHtml, (m, val) => { if (val is string)  m.BodyHtml = val; else m.Html = val; } },
-            {EpropertyTag.PidTagRtfCompressed, (m, val) => m.RtfCompressed = val },
+            {EpropertyTag.PidTagHtml, (m, val) => { if (val is string htmlText)  m.BodyHtml = htmlText; else m.Html = AsBytes(val); } },
+            {EpropertyTag.PidTagRtfCompressed, (m, val) => m.RtfCompressed = AsBytes(val) },
         };
 
         // The properties we read when accessing the recipient table of a message
         private static readonly PropertyGetters<Recipient> pgMessageRecipient = new PropertyGetters<Recipient>
         {
-            {EpropertyTag.PidTagRecipientType, (r, val) => r.RecipientType = (RecipientType)val },
-            {EpropertyTag.PidTagDisplayName, (r, val) => r.DisplayName = val },
-            {EpropertyTag.PidTagEmailAddress, (r, val) => r.EmailAddress = val },
+            {EpropertyTag.PidTagRecipientType, (r, val) => r.RecipientType = AsRecipientType(val) },
+            {EpropertyTag.PidTagDisplayName, (r, val) => r.DisplayName = AsString(val) },
+            {EpropertyTag.PidTagEmailAddress, (r, val) => r.EmailAddress = AsString(val) },
         };
 
         //The properties we read when accessing a message attached to a message
         private static readonly PropertyGetters<Message> pgMessageAttachment = new PropertyGetters<Message>
         {
-            {EpropertyTag.PidTagSubjectW, (m, val) => m.Subject = val },
-            {EpropertyTag.PidTagDisplayCcW, (m, val) => m.Cc = val },
-            {EpropertyTag.PidTagDisplayToW, (m, val) => m.To = val },
-            {EpropertyTag.PidTagMessageFlags, (m, val) => m.Flags = (MessageFlags)val },
-            {EpropertyTag.PidTagSentRepresentingNameW, (m, val) => m.From = val },
-            {EpropertyTag.PidTagClientSubmitTime, (m, val) => m.Submitted = val },
-            {EpropertyTag.PidTagMessageDeliveryTime, (m, val) => m.Received = val },
-            {EpropertyTag.PidTagLastModificationTime, (m, val) => m.Modified = val },
-            {EpropertyTag.PidTagNativeBody, (m, val) => m.NativeBody = (BodyType)val },
-            {EpropertyTag.PidTagBody, (m, val) => m.Body = val },
-            {EpropertyTag.PidTagHtml, (m, val) => { if (val is string)  m.BodyHtml = val; else m.Html = val; } },
-            {EpropertyTag.PidTagRtfCompressed, (m, val) => m.RtfCompressed = val },
+            {EpropertyTag.PidTagSubjectW, (m, val) => m.Subject = AsString(val) },
+            {EpropertyTag.PidTagDisplayCcW, (m, val) => m.Cc = AsString(val) },
+            {EpropertyTag.PidTagDisplayToW, (m, val) => m.To = AsString(val) },
+            {EpropertyTag.PidTagMessageFlags, (m, val) => m.Flags = AsMessageFlags(val) },
+            {EpropertyTag.PidTagSentRepresentingNameW, (m, val) => m.From = AsString(val) },
+            {EpropertyTag.PidTagClientSubmitTime, (m, val) => m.Submitted = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagMessageDeliveryTime, (m, val) => m.Received = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagLastModificationTime, (m, val) => m.Modified = AsNullableDateTime(val) },
+            {EpropertyTag.PidTagNativeBody, (m, val) => m.NativeBody = AsBodyType(val) },
+            {EpropertyTag.PidTagBody, (m, val) => m.Body = AsString(val) },
+            {EpropertyTag.PidTagHtml, (m, val) => { if (val is string htmlText)  m.BodyHtml = htmlText; else m.Html = AsBytes(val); } },
+            {EpropertyTag.PidTagRtfCompressed, (m, val) => m.RtfCompressed = AsBytes(val) },
         };
 
         private static readonly HashSet<EpropertyTag> contentExclusions = new HashSet<EpropertyTag>
@@ -118,29 +148,29 @@ namespace XstReader
         // The properties we read when getting a list of attachments
         private static readonly PropertyGetters<Attachment> pgAttachmentList = new PropertyGetters<Attachment>
         {
-            {EpropertyTag.PidTagDisplayName, (a, val) => a.DisplayName = val },
-            {EpropertyTag.PidTagAttachFilenameW, (a, val) => a.FileNameW = val },
-            {EpropertyTag.PidTagAttachLongFilename, (a, val) => a.LongFileName = val },
-            {EpropertyTag.PidTagAttachmentSize, (a, val) => a.Size = val },
-            {EpropertyTag.PidTagAttachMethod, (a, val) => a.AttachMethod = (AttachMethods)val },
+            {EpropertyTag.PidTagDisplayName, (a, val) => a.DisplayName = AsString(val) },
+            {EpropertyTag.PidTagAttachFilenameW, (a, val) => a.FileNameW = AsString(val) },
+            {EpropertyTag.PidTagAttachLongFilename, (a, val) => a.LongFileName = AsString(val) },
+            {EpropertyTag.PidTagAttachmentSize, (a, val) => a.Size = AsInt32(val) },
+            {EpropertyTag.PidTagAttachMethod, (a, val) => a.AttachMethod = AsAttachMethod(val) },
             //{EpropertyTag.PidTagAttachMimeTag, (a, val) => a.MimeTag = val },
-            {EpropertyTag.PidTagAttachPayloadClass, (a, val) => a.FileNameW = val },
+            {EpropertyTag.PidTagAttachPayloadClass, (a, val) => a.FileNameW = AsString(val) },
         };
 
         // The properties we read To enable handling of HTML images delivered as attachments
         private static readonly PropertyGetters<Attachment> pgAttachedHtmlImages = new PropertyGetters<Attachment>
         {
-            {EpropertyTag.PidTagAttachFlags, (a, val) => a.Flags = (AttachFlags)val },
-            {EpropertyTag.PidTagAttachMimeTag, (a, val) => a.MimeTag = val },
-            {EpropertyTag.PidTagAttachContentId, (a, val) => a.ContentId = val },
-            {EpropertyTag.PidTagAttachmentHidden, (a, val) => a.Hidden = val },
+            {EpropertyTag.PidTagAttachFlags, (a, val) => a.Flags = AsAttachFlags(val) },
+            {EpropertyTag.PidTagAttachMimeTag, (a, val) => a.MimeTag = AsString(val) },
+            {EpropertyTag.PidTagAttachContentId, (a, val) => a.ContentId = AsString(val) },
+            {EpropertyTag.PidTagAttachmentHidden, (a, val) => a.Hidden = AsBool(val) },
         };
 
         // The properties we read when accessing the name of an attachment
         private static readonly PropertyGetters<Attachment> pgAttachmentName = new PropertyGetters<Attachment>
         {
-            {EpropertyTag.PidTagAttachFilenameW, (a, val) => a.FileNameW = val },
-            {EpropertyTag.PidTagAttachLongFilename, (a, val) => a.LongFileName = val },
+            {EpropertyTag.PidTagAttachFilenameW, (a, val) => a.FileNameW = AsString(val) },
+            {EpropertyTag.PidTagAttachLongFilename, (a, val) => a.LongFileName = AsString(val) },
         };
 
         // The properties we read when accessing the contents of an attachment
@@ -278,7 +308,8 @@ namespace XstReader
         {
             if (a.WasLoadedFromMime)
             {
-                s.Write(a.Content, 0, a.Content.Length);
+                var contentBytes = (byte[])a.Content;
+                s.Write(contentBytes, 0, contentBytes.Length);
             }
             else
             {
@@ -292,18 +323,18 @@ namespace XstReader
 
                     var subNodeTreeAttachment = ltp.ReadProperties<Attachment>(fs, subNodeTreeMessage, a.Nid, pgAttachmentContent, a);
 
-                    if ((object)a.Content != null)
+                    if (a.Content != null)
                     {
                         // If the value is inline, we just write it out
-                        if (a.Content.GetType() == typeof(byte[]))
+                        if (a.Content is byte[] contentBytes)
                         {
-                            s.Write(a.Content, 0, a.Content.Length);
+                            s.Write(contentBytes, 0, contentBytes.Length);
                         }
                         // Otherwise we need to dereference the node pointing to the data,
                         // using the subnode tree belonging to the attachment
-                        else if (a.Content.GetType() == typeof(NID))
+                        else if (a.Content is NID contentNid)
                         {
-                            var nb = NDB.LookupSubNode(subNodeTreeAttachment, (NID)a.Content);
+                            var nb = NDB.LookupSubNode(subNodeTreeAttachment, contentNid);
 
                             // Copy the data to the output file stream without getting it all into memory at once,
                             // as there can be a lot of data
@@ -326,9 +357,9 @@ namespace XstReader
                     ndb.LookupNodeAndReadItsSubNodeBtree(fs, a.Message.Nid, out subNodeTreeMessage);
 
                 var subNodeTreeAttachment = ltp.ReadProperties<Attachment>(fs, subNodeTreeMessage, a.Nid, pgAttachmentContent, a);
-                if (a.Content.GetType() == typeof(PtypObjectValue))
+                if (a.Content is PtypObjectValue objectValue)
                 {
-                    Message m = new Message { Nid = new NID(((PtypObjectValue)a.Content).Nid) };
+                    Message m = new Message { Nid = new NID(objectValue.Nid) };
 
                     // Read the basic and contents properties
                     var childSubNodeTree = ltp.ReadProperties<Message>(fs, subNodeTreeAttachment, m.Nid, pgMessageAttachment, m, true);

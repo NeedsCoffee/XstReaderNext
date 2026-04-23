@@ -18,9 +18,9 @@ namespace XstReader
         // The properties we read when accessing the named property definitions
         private static readonly PropertyGetters<NamedProperties> pgNamedProperties = new PropertyGetters<NamedProperties>
         {
-            {EpropertyTag.PidTagNameidStreamGuid, (np, val) => np.StreamGuid = val },
-            {EpropertyTag.PidTagNameidStreamEntry, (np, val) => np.StreamEntry = val },
-            {EpropertyTag.PidTagNameidStreamString, (np, val) => np.StreamString = val },
+            {EpropertyTag.PidTagNameidStreamGuid, (np, val) => np.StreamGuid = (byte[])val },
+            {EpropertyTag.PidTagNameidStreamEntry, (np, val) => np.StreamEntry = (byte[])val },
+            {EpropertyTag.PidTagNameidStreamString, (np, val) => np.StreamString = (byte[])val },
         };
 
         // A heap-on-node data block
@@ -172,7 +172,7 @@ namespace XstReader
                  if (!g.ContainsKey(prop.wPropId))
                     continue;
 
-                dynamic val = ReadPropertyValue(fs, subNodeTree, blocks, prop);
+                object val = ReadPropertyValue(fs, subNodeTree, blocks, prop);
                 g[prop.wPropId](target, val);
             }
         }
@@ -193,7 +193,7 @@ namespace XstReader
                 if (excluding != null && excluding.Contains(prop.wPropId))
                     continue;
 
-                dynamic val = ReadPropertyValue(fs, subNodeTree, blocks, prop);
+                object val = ReadPropertyValue(fs, subNodeTree, blocks, prop);
 
                 Property p = CreatePropertyObject(fs, prop.wPropId, val);
 
@@ -203,9 +203,9 @@ namespace XstReader
             yield break;
         }
 
-        private dynamic ReadPropertyValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, PCBTH prop)
+        private object ReadPropertyValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, PCBTH prop)
         {
-            dynamic val = null;
+            object val = null;
             byte[] buf = null;
 
             switch (prop.wPropType)
@@ -397,7 +397,7 @@ namespace XstReader
             return val;
         }
 
-        private Property CreatePropertyObject(FileStream fs, EpropertyTag propId, dynamic val)
+        private Property CreatePropertyObject(FileStream fs, EpropertyTag propId, object val)
         {
 
             Property p = new Property { Tag = propId, Value = val };
@@ -513,7 +513,7 @@ namespace XstReader
                     if ((rgCEB[col.iBit / 8] & (0x01 << (7 - (col.iBit % 8)))) == 0)
                         continue;
 
-                    dynamic val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col);
+                    object val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col);
 
                     g[col.wPropId](row, val);
                 }
@@ -527,7 +527,7 @@ namespace XstReader
                         if ((rgCEB[col.iBit / 8] & (0x01 << (7 - (col.iBit % 8)))) == 0)
                             continue;
 
-                        dynamic val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col);
+                        object val = ReadTableColumnValue(fs, subNodeTree, blocks, db, rowOffset, col);
 
                         Property p = CreatePropertyObject(fs, col.wPropId, val);
 
@@ -540,9 +540,9 @@ namespace XstReader
             yield break; // No more entries
         }
 
-        private dynamic ReadTableColumnValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, RowDataBlock db, long rowOffset, TCOLDESC col)
+        private object ReadTableColumnValue(FileStream fs, BTree<Node> subNodeTree, List<HNDataBlock> blocks, RowDataBlock db, long rowOffset, TCOLDESC col)
         {
-            dynamic val = null;
+            object val = null;
             HNID hnid;
 
             switch (col.wPropType)
@@ -597,7 +597,7 @@ namespace XstReader
                             val = Encoding.Unicode.GetString(buf, skip, buf.Length - skip);
                         }
                     }
-                    if (val == "" && col.wPropId == EpropertyTag.PidTagSubjectW)
+                    if (val is string emptyUnicodeSubject && emptyUnicodeSubject.Length == 0 && col.wPropId == EpropertyTag.PidTagSubjectW)
                         val = "<No subject>";
                     break;
 
@@ -624,7 +624,7 @@ namespace XstReader
                             val = Encoding.UTF8.GetString(buf, skip, buf.Length - skip);
                         }
                     }
-                    if (val == "" && col.wPropId == EpropertyTag.PidTagSubjectW)
+                    if (val is string emptyAnsiSubject && emptyAnsiSubject.Length == 0 && col.wPropId == EpropertyTag.PidTagSubjectW)
                         val = "<No subject>";
                     break;
 

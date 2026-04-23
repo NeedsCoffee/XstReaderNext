@@ -8,8 +8,8 @@ using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
+#if WINDOWS
 using System.Windows;
-#if !NETCOREAPP
 using System.Windows.Documents;
 using System.Windows.Media;
 #endif
@@ -169,20 +169,13 @@ namespace XstReader
             }
             else if (IsBodyRtf)
             {
-#if !NETCOREAPP
-
-                var doc = GetBodyAsFlowDocument();
-                EmbedRtfPrintHeader(doc);
-                TextRange content = new TextRange(doc.ContentStart, doc.ContentEnd);
                 using (var stream = new FileStream(fullFileName, FileMode.Create))
                 {
-                    content.Save(stream, DataFormats.Rtf);
+                    var bytes = Encoding.ASCII.GetBytes(GetBodyAsRtfString(true));
+                    stream.Write(bytes, 0, bytes.Length);
                 }
                 if (Date != null)
                     File.SetCreationTime(fullFileName, (DateTime)Date);
-#else
-                throw new XstException("Emails with body in RTF format not supported on this platform");
-#endif
             }
             else
             {
@@ -197,14 +190,24 @@ namespace XstReader
             }
         }
 
-#if !NETCOREAPP
+        public string GetBodyAsRtfString(bool includePrintHeader = false, bool showEmailType = false)
+        {
+            var decomp = new RtfDecompressor();
+
+            using (var ms = decomp.Decompress(RtfCompressed, true))
+            {
+                ms.Position = 0;
+                var rtf = Encoding.ASCII.GetString(ms.ToArray());
+                return includePrintHeader ? EmbedRtfPrintHeader(rtf, showEmailType) : rtf;
+            }
+        }
+
+#if WINDOWS
         public FlowDocument GetBodyAsFlowDocument()
         {
             FlowDocument doc = new FlowDocument();
 
-            var decomp = new RtfDecompressor();
-
-            using (System.IO.MemoryStream ms = decomp.Decompress(RtfCompressed, true))
+            using (var ms = new MemoryStream(Encoding.ASCII.GetBytes(GetBodyAsRtfString())))
             {
                 ms.Position = 0;
                 TextRange selection = new TextRange(doc.ContentStart, doc.ContentEnd);
@@ -285,7 +288,7 @@ namespace XstReader
             }
         }
 
-#if !NETCOREAPP
+#if WINDOWS
 
         public void EmbedRtfPrintHeader(FlowDocument doc, bool showEmailType = false)
         {
@@ -329,7 +332,17 @@ namespace XstReader
             //doc.Blocks.InsertBefore(doc.Blocks.FirstBlock, p);
         }
 #endif
-#if !NETCOREAPP
+
+        public string EmbedRtfPrintHeader(string body, bool showEmailType = false)
+        {
+            if (string.IsNullOrEmpty(body))
+                return body;
+
+            var insertAt = FindRtfHeaderInsertionPoint(body);
+            var header = BuildRtfHeader(showEmailType);
+            return body.Insert(insertAt, header);
+        }
+#if WINDOWS
 
         private void AddRtfTableRow(Table table, string c0, string c1)
         {
@@ -412,6 +425,77 @@ namespace XstReader
             return sb.ToString();
         }
 
+        private int FindRtfHeaderInsertionPoint(string rtf)
+        {
+            foreach (var marker in new[] { @"\viewkind", @"\pard", @"\plain" })
+            {
+                var index = rtf.IndexOf(marker, StringComparison.Ordinal);
+                if (index > 0)
+                    return index;
+            }
+
+            // Fall back to inserting just inside the root group.
+            return rtf.StartsWith("{", StringComparison.Ordinal) ? 1 : 0;
+        }
+
+        private string BuildRtfHeader(bool showEmailType)
+        {
+            var header = new StringBuilder();
+
+            AppendRtfHeaderRow(header, "Sent:", String.Format("{0:dd MMMM yyyy HH:mm}", Date));
+            AppendRtfHeaderRow(header, showEmailType ? "RTF From:" : "From:", From);
+            AppendRtfHeaderRow(header, "To:", ToDisplayList);
+            if (HasCcDisplayList)
+                AppendRtfHeaderRow(header, "Cc:", CcDisplayList);
+            if (HasBccDisplayList)
+                AppendRtfHeaderRow(header, "Bcc:", BccDisplayList);
+            AppendRtfHeaderRow(header, "Subject:", Subject);
+            if (HasFileAttachment)
+                AppendRtfHeaderRow(header, "Attachments:", FileAttachmentDisplayList);
+            header.Append(@"\par\par ");
+
+            return header.ToString();
+        }
+
+        private void AppendRtfHeaderRow(StringBuilder header, string label, string value)
+        {
+            header.Append(@"\pard\plain\f0\fs20 ");
+            header.Append(@"\b ");
+            header.Append(EscapeRtfText(label ?? ""));
+            header.Append(@"\b0 ");
+            header.Append(EscapeRtfText(value ?? ""));
+            header.Append(@"\par ");
+        }
+
+        private string EscapeRtfText(string value)
+        {
+            var escaped = new StringBuilder(value.Length);
+            foreach (var ch in value)
+            {
+                switch (ch)
+                {
+                    case '\\':
+                    case '{':
+                    case '}':
+                        escaped.Append('\\').Append(ch);
+                        break;
+                    case '\r':
+                        break;
+                    case '\n':
+                        escaped.Append(@"\line ");
+                        break;
+                    default:
+                        if (ch <= 0x7f)
+                            escaped.Append(ch);
+                        else
+                            escaped.Append(@"\u").Append((short)ch).Append('?');
+                        break;
+                }
+            }
+
+            return escaped.ToString();
+        }
+
         private Encoding GetEncoding()
         {
             var p = Properties.FirstOrDefault(x => x.Guid == "00020386-0000-0000-c000-000000000046" && x.Name == "content-type");
@@ -426,7 +510,14 @@ namespace XstReader
             p = Properties.FirstOrDefault(x => x.Tag == EpropertyTag.PidTagInternetCodepage);
             if (p != null)
             {
-                return Encoding.GetEncoding((int)p.Value);
+                return Encoding.GetEncoding(p.Value switch
+                {
+                    int intCodepage => intCodepage,
+                    uint uintCodepage when uintCodepage <= int.MaxValue => checked((int)uintCodepage),
+                    short shortCodepage => shortCodepage,
+                    ushort ushortCodepage => ushortCodepage,
+                    _ => throw new InvalidCastException($"Unable to cast object of type '{p.Value?.GetType()}' to Int32.")
+                });
             }
 
             return null;
@@ -512,16 +603,12 @@ namespace XstReader
             X509Certificate2Collection fcollection = (X509Certificate2Collection)collection.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
 
             //decrypt bytes with EnvelopedCms
-#if !NETCOREAPP
             EnvelopedCms ec = new EnvelopedCms();
             ec.Decode(encryptedMessageBytes);
             ec.Decrypt(fcollection);
             byte[] decryptedData = ec.ContentInfo.Content;
 
             return System.Text.Encoding.ASCII.GetString(decryptedData);
-#else
-            throw new XstException("CMS decoding not supported on this platform");
-#endif
         }
 
         //Signed messages are base64 endcoded and broken up with \r\n 
@@ -534,14 +621,10 @@ namespace XstReader
             string data = base64Message.Replace("\r\n", "");
 
             // parse out signing data from content
-#if !NETCOREAPP
             SignedCms sc = new SignedCms();
             sc.Decode(Convert.FromBase64String(data));
 
             return System.Text.Encoding.ASCII.GetString(sc.ContentInfo.Content);
-#else
-            throw new XstException("PKCS decoding not supported on this platform");
-#endif
         }
 
         //parse out mime headers from a mime section

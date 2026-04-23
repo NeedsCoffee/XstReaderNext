@@ -127,7 +127,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.Serialization;
@@ -341,11 +340,10 @@ namespace NDesk.Options {
 
 		protected static T Parse<T> (string value, OptionContext c)
 		{
-			TypeConverter conv = TypeDescriptor.GetConverter (typeof (T));
 			T t = default (T);
 			try {
 				if (value != null)
-					t = (T) conv.ConvertFromString (value);
+					t = ConvertValue<T> (value);
 			}
 			catch (Exception e) {
 				throw new OptionException (
@@ -355,6 +353,27 @@ namespace NDesk.Options {
 						c.OptionName, e);
 			}
 			return t;
+		}
+
+		static T ConvertValue<T> (string value)
+		{
+			Type targetType = typeof (T);
+			Type underlyingType = Nullable.GetUnderlyingType (targetType) ?? targetType;
+
+			if (underlyingType == typeof (string))
+				return (T) (object) value;
+
+			if (underlyingType.IsEnum)
+				return (T) Enum.Parse (underlyingType, value, true);
+
+			if (underlyingType == typeof (Guid))
+				return (T) (object) Guid.Parse (value);
+
+			if (underlyingType == typeof (TimeSpan))
+				return (T) (object) TimeSpan.Parse (value, CultureInfo.InvariantCulture);
+
+			object converted = Convert.ChangeType (value, underlyingType, CultureInfo.InvariantCulture);
+			return (T) converted;
 		}
 
 		internal string[] Names           {get {return names;}}

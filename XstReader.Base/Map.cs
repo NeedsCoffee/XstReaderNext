@@ -14,7 +14,7 @@ namespace XstReader
         public static T ReadType<T>(FileStream fs)
         {
             byte[] buffer = new byte[Marshal.SizeOf(typeof(T))];
-            fs.Read(buffer, 0, Marshal.SizeOf(typeof(T)));
+            fs.ReadExactly(buffer, 0, buffer.Length);
             return MapType<T>(buffer);
         }
 

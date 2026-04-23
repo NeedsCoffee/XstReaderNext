@@ -72,8 +72,9 @@ namespace XstReader
         {
             if (stream.CanRead)
             {
-                var buffer = new byte[stream.Length - 1];
-                stream.Read(buffer, 0, (int)stream.Length);
+                var length = checked((int)stream.Length);
+                var buffer = new byte[length];
+                stream.ReadExactly(buffer, 0, length);
                 return Decompress(buffer, enforceCrc);
             }
             return null;
