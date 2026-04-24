@@ -49,10 +49,12 @@ dotnet run --project XstExport\XstExport.csproj -- -e C:\mail\archive.pst
 
 ## Create Release Packages
 
-The current release process produces self-contained single-file `win-x64` executables for:
+The current release process produces a self-contained single-file `win-x64` desktop executable for `XstReader`, and self-contained single-file `XstExport` binaries for:
 
-- `XstReader.exe`
-- `XstExport.exe`
+- `win-x64`
+- `linux-x64`
+- `osx-x64`
+- `osx-arm64`
 
 With default SDK behavior, publish outputs go under each project's `bin\Release\<tfm>\<rid>\publish\` directory unless you pass `-o`.
 
@@ -63,6 +65,11 @@ dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
 ```
+
+Current validation status:
+
+- the Windows desktop app and Windows exporter are the primary tested release targets
+- the Linux and macOS `XstExport` publishes build successfully, but they are not yet runtime-tested on native Linux/macOS systems
 
 ## Verification Notes
 

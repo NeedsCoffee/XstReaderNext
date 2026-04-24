@@ -58,6 +58,7 @@ In practice this means:
 - the desktop viewer is Windows-only
 - the CLI exporter is the cross-platform-oriented build target in the source tree
 - release packages can be published per runtime identifier, including `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`
+- the Linux and macOS `XstExport` builds are not yet runtime-tested on native Linux/macOS systems
 
 ## Features
 
@@ -105,14 +106,20 @@ Where:
 
 ## Release Artifacts
 
-The repository currently includes Windows release artifacts under [dist](dist):
+Published release assets for version `2.1.2` currently include:
 
-- `XstReader.exe`
 - `XstReader-win-x64.zip`
-- `XstExport.exe`
 - `XstExport-win-x64.zip`
+- `XstExport-linux-x64.tar.gz`
+- `XstExport-osx-x64.tar.gz`
+- `XstExport-osx-arm64.tar.gz`
 
-These are self-contained single-file executables, so they do not require a separate .NET runtime installation on the target machine.
+These packages contain self-contained single-file executables, so they do not require a separate .NET runtime installation on the target machine.
+
+Important:
+
+- `XstReader` is only supported on Windows
+- the Linux and macOS `XstExport` packages are publishable and packaged, but they are not yet runtime-tested on native Linux/macOS environments
 
 Runtime behavior note:
 
@@ -141,6 +148,8 @@ dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
 
 Without an explicit `-o`, `dotnet publish` uses the normal SDK publish folders under `bin\Release\<tfm>\<rid>\publish\`.
 
+Those non-Windows exporter builds are intended for packaging and evaluation, but they should currently be treated as untested until they have been exercised on native Linux/macOS machines with real `.pst` or `.ost` files.
+
 ## Notes For Developers
 
 - `XstReader.Base` contains the shared PST/OST parsing functionality used by both the desktop app and the CLI exporter
@@ -160,7 +169,7 @@ Credit for the original XstReader application and parser belongs to Dijji. This 
 ## Release History
 
 - `2.1.2`
-  Fixes PST integrity validation to use the MS-PST CRC variant and validates block CRCs against stored block bytes before decoding; also removes the abandoned cross-platform UI experiment and keeps Release build output under `dist/`
+  Fixes PST integrity validation to use the MS-PST CRC variant and validates block CRCs against stored block bytes before decoding; also removes the abandoned cross-platform UI experiment and keeps the CLI exporter as the cross-platform-oriented target in the source tree
 - `2.1.1`
   Follow-on maintenance release: updated the PST/OST parser to better align with the current MS-PST specification where relevant, including stricter integrity checks, broader supported header/version handling, improved `PtypString8` decoding, generic BTH key-size handling, clearer WIP-protected PST/OST messaging, OST 4K compatibility handling, and refreshed packaging/metadata cleanup
 - `2.0`
