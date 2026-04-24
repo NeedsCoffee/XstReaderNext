@@ -108,14 +108,14 @@ Where:
 
 Published release assets for version `2.1.2` currently include:
 
-- `XstReader-win-x64.zip`
-- `XstReader-win-arm64.zip`
-- `XstExport-win-x64.zip`
-- `XstExport-win-arm64.zip`
-- `XstExport-linux-x64.tar.gz`
-- `XstExport-linux-arm64.tar.gz`
-- `XstExport-osx-x64.tar.gz`
-- `XstExport-osx-arm64.tar.gz`
+- [`XstReader-win-x64.zip`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstReader-win-x64.zip)
+- [`XstReader-win-arm64.zip`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstReader-win-arm64.zip)
+- [`XstExport-win-x64.zip`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstExport-win-x64.zip)
+- [`XstExport-win-arm64.zip`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstExport-win-arm64.zip)
+- [`XstExport-linux-x64.tar.gz`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstExport-linux-x64.tar.gz)
+- [`XstExport-linux-arm64.tar.gz`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstExport-linux-arm64.tar.gz)
+- [`XstExport-osx-x64.tar.gz`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstExport-osx-x64.tar.gz)
+- [`XstExport-osx-arm64.tar.gz`](https://github.com/NeedsCoffee/XstReaderNext/releases/download/v2.1.2/XstExport-osx-arm64.tar.gz)
 
 These packages contain self-contained single-file executables, so they do not require a separate .NET runtime installation on the target machine.
 
