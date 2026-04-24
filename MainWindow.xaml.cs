@@ -951,7 +951,7 @@ namespace XstReader
         private void btnInfo_Click(object sender, RoutedEventArgs e)
         {
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            string Repository = "https://github.com/Dijji/XstReader";
+            string Repository = "https://github.com/NeedsCoffee/XstReaderNext";
 
             StringBuilder msg = new StringBuilder(100);
             msg.AppendLine("View Microsoft Outlook Mail files");

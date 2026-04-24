@@ -360,7 +360,9 @@ namespace XstReader
         public List<Message> Messages { get; private set; } = new List<Message>();
 
         private string _Path = null;
-        public string Path => _Path ?? (_Path = (string.IsNullOrEmpty(ParentFolder?.Name)) ? Name : $"{ParentFolder.Path}\\{Name}");
+        public string Path => _Path ?? (_Path = string.IsNullOrEmpty(ParentFolder?.Name)
+            ? Name
+            : System.IO.Path.Combine(ParentFolder.Path, Name));
         
         public Message AddMessage(Message m)
         {

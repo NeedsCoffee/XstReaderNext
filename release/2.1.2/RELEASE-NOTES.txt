@@ -1,0 +1,12 @@
+XstReader 2.1.2 release package set
+
+Refreshed from the current repository state.
+
+Contents:
+  XstReader-win-x64.zip
+  XstExport-win-x64.zip
+  XstExport-linux-x64.tar.gz
+  XstExport-osx-x64.tar.gz
+  XstExport-osx-arm64.tar.gz
+
+Checksums are listed in SHA256SUMS.txt.

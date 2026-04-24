@@ -264,7 +264,7 @@ namespace XstReader
                 {
                     Directory.CreateDirectory(targetFolder);
                     if (m.Date != null)
-                        Directory.SetCreationTime(targetFolder, (DateTime)m.Date);
+                        SetDirectoryTimestamp(targetFolder, (DateTime)m.Date);
                 }
                 SaveAttachmentsToFolder(targetFolder, m.Date, m.Attachments.Where(a => a.IsFile && !a.Hide));
             }
@@ -301,7 +301,7 @@ namespace XstReader
                 SaveAttachment(afs, a);
             }
             if (creationTime != null)
-                File.SetCreationTime(fullFileName, (DateTime)creationTime);
+                SetFileTimestamp(fullFileName, (DateTime)creationTime);
         }
 
         public void SaveAttachment(Stream s, Attachment a)
@@ -561,6 +561,38 @@ namespace XstReader
                 return value;
             else
                 return value.Substring(0, valueLengthLimit) + "…";
+        }
+
+        private static void SetDirectoryTimestamp(string path, DateTime timestamp)
+        {
+            try
+            {
+                Directory.SetCreationTime(path, timestamp);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                Directory.SetLastWriteTime(path, timestamp);
+            }
+            catch (IOException)
+            {
+                Directory.SetLastWriteTime(path, timestamp);
+            }
+        }
+
+        private static void SetFileTimestamp(string path, DateTime timestamp)
+        {
+            try
+            {
+                File.SetCreationTime(path, timestamp);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                File.SetLastWriteTime(path, timestamp);
+            }
+            catch (IOException)
+            {
+                File.SetLastWriteTime(path, timestamp);
+            }
         }
 
         #endregion

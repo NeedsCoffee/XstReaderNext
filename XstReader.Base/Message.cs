@@ -164,7 +164,7 @@ namespace XstReader
                         stream.Write(bytes, 0, bytes.Count());
                     }
                     if (Date != null)
-                        File.SetCreationTime(fullFileName, (DateTime)Date);
+                        SetFileTimestamp(fullFileName, (DateTime)Date);
                 }
             }
             else if (IsBodyRtf)
@@ -175,7 +175,7 @@ namespace XstReader
                     stream.Write(bytes, 0, bytes.Length);
                 }
                 if (Date != null)
-                    File.SetCreationTime(fullFileName, (DateTime)Date);
+                    SetFileTimestamp(fullFileName, (DateTime)Date);
             }
             else
             {
@@ -186,7 +186,7 @@ namespace XstReader
                     stream.Write(bytes, 0, bytes.Count());
                 }
                 if (Date != null)
-                    File.SetCreationTime(fullFileName, (DateTime)Date);
+                    SetFileTimestamp(fullFileName, (DateTime)Date);
             }
         }
 
@@ -523,6 +523,22 @@ namespace XstReader
             }
 
             return null;
+        }
+
+        private static void SetFileTimestamp(string fullFileName, DateTime timestamp)
+        {
+            try
+            {
+                File.SetCreationTime(fullFileName, timestamp);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                File.SetLastWriteTime(fullFileName, timestamp);
+            }
+            catch (IOException)
+            {
+                File.SetLastWriteTime(fullFileName, timestamp);
+            }
         }
 
         // Take encrypted or signed bytes and parse into message object

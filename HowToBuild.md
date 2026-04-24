@@ -54,7 +54,15 @@ The current release process produces self-contained single-file `win-x64` execut
 - `XstReader.exe`
 - `XstExport.exe`
 
-Those release artifacts are collected into `dist/`.
+With default SDK behavior, publish outputs go under each project's `bin\Release\<tfm>\<rid>\publish\` directory unless you pass `-o`.
+
+For cross-platform CLI exporter publishes, run:
+
+```powershell
+dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
+dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
+dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
+```
 
 ## Verification Notes
 

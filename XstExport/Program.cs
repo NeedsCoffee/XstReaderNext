@@ -306,7 +306,7 @@ namespace XstExport
             if (string.IsNullOrEmpty(f.ParentFolder?.Name))
                 return RemoveInvalidChars(f.Name);
             else
-                return $"{ValidFolderPath(f.ParentFolder)}\\{RemoveInvalidChars(f.Name)}";
+                return Path.Combine(ValidFolderPath(f.ParentFolder), RemoveInvalidChars(f.Name));
         }
 
         private static string RemoveInvalidChars(string filename)
@@ -345,8 +345,8 @@ namespace XstExport
 
                     // Ensure that we have the message contents
                     xstFile.ReadMessageDetails(m);
-                    var fullFileName = String.Format(@"{0}\{1}.{2}",
-                                exportDirectory, fileName, m.ExportFileExtension);
+                    var fullFileName = Path.Combine(exportDirectory,
+                                $"{fileName}.{m.ExportFileExtension}");
                     m.ExportToFile(fullFileName, xstFile);
                     xstFile.SaveVisibleAttachmentsToAssociatedFolder(fullFileName, m);
                     good++;

@@ -57,7 +57,7 @@ In practice this means:
 
 - the desktop viewer is Windows-only
 - the CLI exporter is the cross-platform-oriented build target in the source tree
-- release packages in `dist/` are currently prepared as `win-x64` self-contained executables
+- release packages can be published per runtime identifier, including `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`
 
 ## Features
 
@@ -105,7 +105,7 @@ Where:
 
 ## Release Artifacts
 
-The current ready-to-ship Windows packages are produced into [dist](dist):
+The repository currently includes Windows release artifacts under [dist](dist):
 
 - `XstReader.exe`
 - `XstReader-win-x64.zip`
@@ -131,11 +131,22 @@ dotnet run --project XstReader.csproj
 dotnet run --project XstExport\XstExport.csproj -- --help
 ```
 
+Cross-platform self-contained exporter publishes:
+
+```powershell
+dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
+dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
+dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
+```
+
+Without an explicit `-o`, `dotnet publish` uses the normal SDK publish folders under `bin\Release\<tfm>\<rid>\publish\`.
+
 ## Notes For Developers
 
 - `XstReader.Base` contains the shared PST/OST parsing functionality used by both the desktop app and the CLI exporter
 - the Windows target keeps the WPF-specific desktop integration
 - the `net10.0` target is what `XstExport` consumes
+- publish/build output paths now use the normal .NET SDK defaults unless you pass an explicit output path
 - the repo intentionally keeps `test/` out of cleanup passes because it is used for real PST validation
 
 ## Background
