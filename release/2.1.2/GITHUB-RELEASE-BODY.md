@@ -1,10 +1,11 @@
-## XstReader 2.1.2
+## Multi-platform standalone .NET 10 release!
 
+- Build solution using .NET 10
+- Fix hardcoded paths to allow multi-platform use.
+- Adapt PST/OST parsing code for latest PST spec (11.2)
 - Fix PST CRC calculation to match the MS-PST CRC variant.
 - Validate block CRCs against stored block bytes before decoding.
-- Refresh the published 2.1.2 package set.
-- Update the Windows app About dialog repository URL to `https://github.com/NeedsCoffee/XstReaderNext`.
-- Add published `linux-arm64`, `win-arm64` `XstExport` packages, plus a `win-arm64` `XstReader` package.
+- Produce x64 and arm64 builds for windows, linux and osx.
 
 Downloads:
 - `XstReader-win-x64.zip`
