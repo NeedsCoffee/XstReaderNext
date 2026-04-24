@@ -53,6 +53,7 @@ The current release process produces a self-contained single-file `win-x64` desk
 
 - `win-x64`
 - `linux-x64`
+- `linux-arm64`
 - `osx-x64`
 - `osx-arm64`
 
@@ -62,6 +63,7 @@ For cross-platform CLI exporter publishes, run:
 
 ```powershell
 dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
+dotnet publish XstExport\XstExport.csproj -c Release -r linux-arm64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
 ```

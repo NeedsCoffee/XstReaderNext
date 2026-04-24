@@ -6,6 +6,7 @@ Contents:
   XstReader-win-x64.zip
   XstExport-win-x64.zip
   XstExport-linux-x64.tar.gz
+  XstExport-linux-arm64.tar.gz
   XstExport-osx-x64.tar.gz
   XstExport-osx-arm64.tar.gz
 
