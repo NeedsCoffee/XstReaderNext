@@ -49,9 +49,15 @@ dotnet run --project XstExport\XstExport.csproj -- -e C:\mail\archive.pst
 
 ## Create Release Packages
 
-The current release process produces a self-contained single-file `win-x64` desktop executable for `XstReader`, and self-contained single-file `XstExport` binaries for:
+The current release process produces self-contained single-file desktop executables for `XstReader` on:
 
 - `win-x64`
+- `win-arm64`
+
+And self-contained single-file `XstExport` binaries for:
+
+- `win-x64`
+- `win-arm64`
 - `linux-x64`
 - `linux-arm64`
 - `osx-x64`
@@ -66,6 +72,7 @@ dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r linux-arm64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
+dotnet publish XstExport\XstExport.csproj -c Release -r win-arm64
 ```
 
 Current validation status:

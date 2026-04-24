@@ -57,7 +57,7 @@ In practice this means:
 
 - the desktop viewer is Windows-only
 - the CLI exporter is the cross-platform-oriented build target in the source tree
-- release packages can be published per runtime identifier, including `win-x64`, `linux-x64`, `linux-arm64`, `osx-x64`, and `osx-arm64`
+- release packages can be published per runtime identifier, including `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, and `osx-arm64`
 - the Linux and macOS `XstExport` builds are not yet runtime-tested on native Linux/macOS systems
 
 ## Features
@@ -109,7 +109,9 @@ Where:
 Published release assets for version `2.1.2` currently include:
 
 - `XstReader-win-x64.zip`
+- `XstReader-win-arm64.zip`
 - `XstExport-win-x64.zip`
+- `XstExport-win-arm64.zip`
 - `XstExport-linux-x64.tar.gz`
 - `XstExport-linux-arm64.tar.gz`
 - `XstExport-osx-x64.tar.gz`
@@ -146,6 +148,7 @@ dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r linux-arm64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
 dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
+dotnet publish XstExport\XstExport.csproj -c Release -r win-arm64
 ```
 
 Without an explicit `-o`, `dotnet publish` uses the normal SDK publish folders under `bin\Release\<tfm>\<rid>\publish\`.
