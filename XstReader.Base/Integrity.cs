@@ -9,7 +9,7 @@ namespace XstReader
             if (offset < 0 || count < 0 || offset + count > buffer.Length)
                 throw new ArgumentOutOfRangeException(nameof(count));
 
-            uint crc = 0xFFFFFFFF;
+            uint crc = 0;
 
             for (int i = 0; i < count; i++)
             {
@@ -24,7 +24,7 @@ namespace XstReader
                 }
             }
 
-            return ~crc;
+            return crc;
         }
 
         public static ushort ComputeSignature(ulong fileOffset, ulong bid)

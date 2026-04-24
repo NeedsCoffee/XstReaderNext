@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <BaseOutputPath>$(MSBuildThisFileDirectory)dist\build\$(MSBuildProjectName)\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

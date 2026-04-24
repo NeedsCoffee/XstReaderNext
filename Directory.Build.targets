@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' and '$(OutputType)' != 'Library'">
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <PublishDir>$(MSBuildThisFileDirectory)dist\</PublishDir>
+  </PropertyGroup>
+</Project>

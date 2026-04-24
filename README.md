@@ -7,7 +7,7 @@ This repository is a fork of the original XstReader project by Dijji:
 
 The original codebase, application design, and PST/OST reader implementation were created by Dijji. This fork continues that work with modernization, packaging, and compatibility updates.
 
-Current version: `2.1.1`
+Current version: `2.1.2`
 
 It includes:
 
@@ -28,7 +28,7 @@ This repository is a maintained fork of that codebase. It keeps the original rea
 
 The original project was built around `.NET Framework 4` and older-style Visual Studio project files. This repository has now been updated to a modern SDK-style layout and `.NET 10`.
 
-Version `2.0` was the line in the sand for that modernization. Version `2.1.1` builds on that work with parser/spec alignment and OST compatibility updates.
+Version `2.0` was the line in the sand for that modernization. Version `2.1.2` builds on that work with parser/spec alignment, OST compatibility updates, and PST CRC validation fixes.
 
 The main changes are:
 
@@ -148,6 +148,8 @@ Credit for the original XstReader application and parser belongs to Dijji. This 
 
 ## Release History
 
+- `2.1.2`
+  Fixes PST integrity validation to use the MS-PST CRC variant and validates block CRCs against stored block bytes before decoding; also removes the abandoned cross-platform UI experiment and keeps Release build output under `dist/`
 - `2.1.1`
   Follow-on maintenance release: updated the PST/OST parser to better align with the current MS-PST specification where relevant, including stricter integrity checks, broader supported header/version handling, improved `PtypString8` decoding, generic BTH key-size handling, clearer WIP-protected PST/OST messaging, OST 4K compatibility handling, and refreshed packaging/metadata cleanup
 - `2.0`

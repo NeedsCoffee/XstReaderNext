@@ -597,7 +597,7 @@ namespace XstReader
                 if (buffer == null)
                     buffer = new byte[rb.Length];
                 Array.Copy(blockBytes, 0, buffer, offset, checked((int)rb.Length));
-                ValidateBlock(blockBytes, rb.Offset, checked((int)rb.Length), IsUnicode, rb.Key, buffer, offset, !rb.IsInternal);
+                ValidateBlock(blockBytes, rb.Offset, checked((int)rb.Length), IsUnicode, rb.Key, buffer, offset);
                 read = rb.Length;
             }
 
@@ -742,7 +742,7 @@ namespace XstReader
             return Integrity.ComputeSignature(fileOffset, bid);
         }
 
-        private void ValidateBlock(byte[] blockBytes, ulong fileOffset, int dataLength, bool isUnicode, ulong bid, byte[] buffer, int offset, bool decryptForCrc)
+        private void ValidateBlock(byte[] blockBytes, ulong fileOffset, int dataLength, bool isUnicode, ulong bid, byte[] buffer, int offset)
         {
             if (isUnicode)
             {
@@ -755,11 +755,7 @@ namespace XstReader
                 if (trailer.wSig != Integrity.ComputeSignature(fileOffset, trailer.bid))
                     throw new XstException("Unicode block signature is invalid");
 
-                var decodedData = new byte[dataLength];
-                Array.Copy(buffer, offset, decodedData, 0, dataLength);
-                if (decryptForCrc)
-                    Decrypt(ref decodedData, (UInt32)(bid & 0xffffffff));
-                if (Integrity.ComputeCrc(decodedData, 0, decodedData.Length) != trailer.dwCRC)
+                if (Integrity.ComputeCrc(buffer, offset, dataLength) != trailer.dwCRC)
                     throw new XstException("Unicode block CRC is invalid");
             }
             else
@@ -773,11 +769,7 @@ namespace XstReader
                 if (trailer.wSig != Integrity.ComputeSignature(fileOffset, trailer.bid))
                     throw new XstException("ANSI block signature is invalid");
 
-                var decodedData = new byte[dataLength];
-                Array.Copy(buffer, offset, decodedData, 0, dataLength);
-                if (decryptForCrc)
-                    Decrypt(ref decodedData, (UInt32)(bid & 0xffffffff));
-                if (Integrity.ComputeCrc(decodedData, 0, decodedData.Length) != trailer.dwCRC)
+                if (Integrity.ComputeCrc(buffer, offset, dataLength) != trailer.dwCRC)
                     throw new XstException("ANSI block CRC is invalid");
             }
         }
