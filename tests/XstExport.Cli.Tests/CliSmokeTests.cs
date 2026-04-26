@@ -47,7 +47,7 @@ public class CliSmokeTests
     private static async Task<CommandResult> RunCliAsync(params string[] args)
     {
         string repositoryRoot = FindRepositoryRoot();
-        string dllPath = Path.Combine(repositoryRoot, "src", "XstExport", "bin", "Debug", "net10.0", "XstExport.dll");
+        string dllPath = FindBuiltCliPath(repositoryRoot);
 
         var startInfo = new ProcessStartInfo
         {
@@ -89,6 +89,44 @@ public class CliSmokeTests
         }
 
         throw new DirectoryNotFoundException("Could not locate repository root from test output directory.");
+    }
+
+    private static string FindBuiltCliPath(string repositoryRoot)
+    {
+        string configuration = GetBuildConfiguration();
+        string configurationDirectory = Path.Combine(repositoryRoot, "src", "XstExport", "bin", configuration);
+
+        if (!Directory.Exists(configurationDirectory))
+            throw new DirectoryNotFoundException($"Expected build output directory '{configurationDirectory}' was not found.");
+
+        string[] candidates = Directory.GetFiles(configurationDirectory, "XstExport.dll", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(path => path.Count(ch => ch == Path.DirectorySeparatorChar))
+            .ToArray();
+
+        if (candidates.Length == 0)
+            throw new FileNotFoundException($"Could not locate built XstExport.dll under '{configurationDirectory}'.");
+
+        return candidates[0];
+    }
+
+    private static string GetBuildConfiguration()
+    {
+        string? current = AppContext.BaseDirectory;
+
+        while (current != null)
+        {
+            string directoryName = Path.GetFileName(current);
+            if (string.Equals(directoryName, "Debug", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(directoryName, "Release", StringComparison.OrdinalIgnoreCase))
+            {
+                return directoryName;
+            }
+
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        return "Debug";
     }
 
     private static string NormalizeLineEndings(string value)
