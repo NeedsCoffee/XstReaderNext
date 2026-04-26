@@ -137,18 +137,18 @@ At a high level:
 
 ```powershell
 dotnet build XstReader.sln
-dotnet run --project XstReader.csproj
-dotnet run --project XstExport\XstExport.csproj -- --help
+dotnet run --project src\XstReader\XstReader.csproj
+dotnet run --project src\XstExport\XstExport.csproj -- --help
 ```
 
 Cross-platform self-contained exporter publishes:
 
 ```powershell
-dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
-dotnet publish XstExport\XstExport.csproj -c Release -r linux-arm64
-dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
-dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
-dotnet publish XstExport\XstExport.csproj -c Release -r win-arm64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r linux-x64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r linux-arm64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r osx-x64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r osx-arm64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r win-arm64
 ```
 
 Without an explicit `-o`, `dotnet publish` uses the normal SDK publish folders under `bin\Release\<tfm>\<rid>\publish\`.

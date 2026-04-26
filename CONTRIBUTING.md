@@ -19,13 +19,13 @@ dotnet build XstReader.sln
 4. Run the desktop app:
 
 ```powershell
-dotnet run --project XstReader.csproj
+dotnet run --project src\XstReader\XstReader.csproj
 ```
 
 5. Run the CLI help:
 
 ```powershell
-dotnet run --project XstExport\XstExport.csproj -- --help
+dotnet run --project src\XstExport\XstExport.csproj -- --help
 ```
 
 ## Change Guidelines

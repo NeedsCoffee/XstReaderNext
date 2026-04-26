@@ -32,19 +32,19 @@ dotnet build XstReader.sln
 Desktop app:
 
 ```powershell
-dotnet run --project XstReader.csproj
+dotnet run --project src\XstReader\XstReader.csproj
 ```
 
 Command-line exporter:
 
 ```powershell
-dotnet run --project XstExport\XstExport.csproj -- --help
+dotnet run --project src\XstExport\XstExport.csproj -- --help
 ```
 
 Example exporter run:
 
 ```powershell
-dotnet run --project XstExport\XstExport.csproj -- -e C:\mail\archive.pst
+dotnet run --project src\XstExport\XstExport.csproj -- -e C:\mail\archive.pst
 ```
 
 ## Create Release Packages
@@ -68,11 +68,11 @@ With default SDK behavior, publish outputs go under each project's `bin\Release\
 For cross-platform CLI exporter publishes, run:
 
 ```powershell
-dotnet publish XstExport\XstExport.csproj -c Release -r linux-x64
-dotnet publish XstExport\XstExport.csproj -c Release -r linux-arm64
-dotnet publish XstExport\XstExport.csproj -c Release -r osx-x64
-dotnet publish XstExport\XstExport.csproj -c Release -r osx-arm64
-dotnet publish XstExport\XstExport.csproj -c Release -r win-arm64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r linux-x64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r linux-arm64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r osx-x64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r osx-arm64
+dotnet publish src\XstExport\XstExport.csproj -c Release -r win-arm64
 ```
 
 Current validation status:

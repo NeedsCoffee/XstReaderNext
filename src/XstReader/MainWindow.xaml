@@ -1,0 +1,304 @@
+<!-- Copyright (c) 2016, Dijji, and released under Ms-PL.  This can be found in the root of this distribution.-->
+<Window x:Class="XstReader.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:stb="clr-namespace:SearchTextBox"
+        Title="Xst Reader" Height="800" Width="1500"
+        Closing="Window_Closing">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleIfTrue"/>
+        <Style x:Key="ListViewSelect" TargetType="{x:Type ListViewItem}">
+            <Setter x:Uid="Setter_10" Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+            <Setter x:Uid="Setter_11" Property="FontWeight" Value="Normal" />
+            <Style.Triggers>
+                <Trigger x:Uid="Trigger_1" Property="IsSelected"
+                              Value="True">
+                    <Setter x:Uid="Setter_12" Property="FontWeight"
+                                    Value="Bold" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="3"/>
+            <ColumnDefinition Width="5*"/>
+            <ColumnDefinition Width="3"/>
+            <ColumnDefinition Width="7*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+        <TreeView Grid.Column="0" Grid.Row="0" Name="treeFolders" ItemsSource="{Binding Path=RootFolderViews}" FontSize="12" SelectedItemChanged="treeFolders_SelectedItemChanged">
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Path=FolderViews}">
+                    <Grid>
+                        <TextBlock Text="{Binding Path=Description}" />
+                    </Grid>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+            <TreeView.ItemContainerStyle>
+                <Style>
+                    <Setter Property="TreeViewItem.IsExpanded" Value="true"/>
+                </Style>
+            </TreeView.ItemContainerStyle>
+            <TreeView.CommandBindings>
+                <CommandBinding Command="Save" Executed="exportAllProperties_Executed"/>
+                <CommandBinding Command="SaveAs" Executed="exportAllEmails_Executed"/>
+            </TreeView.CommandBindings>
+            <TreeView.InputBindings>
+                <KeyBinding Command="Save" Gesture="CTRL+P"/>
+                <KeyBinding Command="SaveAs" Gesture="CTRL+E"/>
+            </TreeView.InputBindings>
+            <TreeView.ContextMenu >
+                <ContextMenu>
+                    <MenuItem Command="SaveAs" Header="Export all Emails…" InputGestureText="Ctrl+E"/>
+                    <MenuItem Command="Save" Header="Export all Properties…" InputGestureText="Ctrl+P"/>
+                </ContextMenu>
+            </TreeView.ContextMenu>
+        </TreeView>
+        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3">
+            <StackPanel Grid.Row="1"  Orientation="Horizontal">
+                <Button Content="Open..." Height="20" Width="75" Margin="10,0,0,0" Name="btnOpen" Click="btnOpen_Click" />
+                <TextBlock Name="txtStatus" Margin="10,7,0,0"/>
+            </StackPanel>
+        </Grid>
+        <GridSplitter Grid.Row="0" Grid.Column="1" Width="3" HorizontalAlignment="Stretch" />
+        <ListView Grid.Row="0" Grid.Column="2" Name="listMessages" Margin="0,0,0,0" DataContext="{Binding Path=SelectedFolder}" ItemsSource="{Binding Path=MessageViews}"
+                    SelectionChanged="listMessages_SelectionChanged" FontSize="12"
+                    ItemContainerStyle="{StaticResource ResourceKey=ListViewSelect}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Width="15" >
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="HasAttachment" Click="listMessagesColumnHeader_Click">A</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <!--use the Unicode paperclip character to mark messages with attachments-->
+                                <TextBlock Text=" &#x1f4ce;" Margin="-8,0,0,0" Visibility="{Binding HasAttachment, Converter={StaticResource VisibleIfTrue}}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="350" >
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="Subject" Click="listMessagesColumnHeader_Click">Subject</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Path=Subject}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="100" >
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="FromTo" Click="listMessagesColumnHeader_Click">From or To</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Path=FromTo}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="120">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="Date" Click="listMessagesColumnHeader_Click">Date</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Path=DisplayDate}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+            <ListView.CommandBindings>
+                <CommandBinding Command="Save" Executed="exportEmail_Executed"/>
+                <CommandBinding Command="SaveAs" Executed="exportEmailProperties_Executed"/>
+            </ListView.CommandBindings>
+            <ListView.InputBindings>
+                <KeyBinding Command="Save" Gesture="CTRL+E"/>
+                <KeyBinding Command="SaveAs" Gesture="CTRL+P"/>
+            </ListView.InputBindings>
+            <ListView.ContextMenu >
+                <ContextMenu>
+                    <MenuItem Command="Save" Header="Export Email…" InputGestureText="Ctrl+E"/>
+                    <MenuItem Command="SaveAs" Header="Export Properties…" InputGestureText="Ctrl+P"/>
+                </ContextMenu>
+            </ListView.ContextMenu>
+        </ListView>
+        <stb:SearchTextBox Grid.Column="2" Grid.Row="1" Width="250" x:Name="searchTextBox" SectionsStyle="CheckBoxStyle" OnSearch="searchTextBox_OnSearch"
+                               Visibility="{Binding Path=IsNotBusy, FallbackValue=Collapsed, Converter={StaticResource VisibleIfTrue}}"/>
+        <GridSplitter Grid.Row="0" Grid.Column="3" Width="3" HorizontalAlignment="Stretch" />
+        <Grid Grid.Row="0" Grid.Column="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                Visibility="{Binding Path=DisplayHeaderFields, Converter={StaticResource VisibleIfTrue}}">
+                <StackPanel Margin="10,0,0,0" Orientation="Vertical">
+                    <TextBlock DataContext="{Binding Path=CurrentMessage}" Text="{Binding Path=Subject}"
+                               FontSize="14" FontWeight="Bold"/>
+                    <TextBlock DataContext="{Binding Path=CurrentMessage}" Text="{Binding Path=From}"
+                               FontSize="12"/>
+                    <Grid DataContext="{Binding Path=CurrentMessage}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="To:" MinWidth="30"
+                               Visibility="{Binding Path=HasToDisplayList, FallbackValue=Collapsed, Converter={StaticResource VisibleIfTrue}}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Path=ToDisplayList}" FontSize="12"
+                               Visibility="{Binding Path=HasToDisplayList, Converter={StaticResource VisibleIfTrue}}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Cc:" MinWidth="30"
+                               Visibility="{Binding Path=HasCcDisplayList, FallbackValue=Collapsed, Converter={StaticResource VisibleIfTrue}}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Path=CcDisplayList}" FontSize="12"
+                               Visibility="{Binding Path=HasCcDisplayList, Converter={StaticResource VisibleIfTrue}}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Bcc:" MinWidth="30"
+                               Visibility="{Binding Path=HasBccDisplayList, FallbackValue=Collapsed, Converter={StaticResource VisibleIfTrue}}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path=BccDisplayList}" FontSize="12"
+                               Visibility="{Binding Path=HasBccDisplayList, Converter={StaticResource VisibleIfTrue}}"/>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+            <Grid Grid.Row="1" Visibility="{Binding ShowContent, Converter={StaticResource VisibleIfTrue}}">
+                <ScrollViewer Name="scrollTextMessage" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox Name="txtMessage" Margin="10,10,0,0" BorderBrush="Transparent" TextWrapping="Wrap" DataContext="{Binding Path=CurrentMessage}"
+                     Visibility="{Binding ShowText, Converter={StaticResource VisibleIfTrue}}"/>
+                </ScrollViewer>
+                <WebBrowser Name="wbMessage" DataContext="{Binding Path=CurrentMessage}" 
+                     Visibility="{Binding ShowHtml, Converter={StaticResource VisibleIfTrue}}"/>
+                <RichTextBox Name="rtfMessage" Margin="5,10,0,0" BorderBrush="Transparent" DataContext="{Binding Path=CurrentMessage}" 
+                     Visibility="{Binding ShowRtf, Converter={StaticResource VisibleIfTrue}}"/>
+            </Grid>
+            <Grid Grid.Row="1" Visibility="{Binding ShowProperties, Converter={StaticResource VisibleIfTrue}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="3"/>
+                    <RowDefinition Height="4*"/>
+                </Grid.RowDefinitions>
+                <ListView Grid.Row="0"  Name="listRecipients" Margin="0,0,0,0" ItemsSource="{Binding Path=CurrentMessage.Recipients}" 
+                      SelectionChanged="listRecipients_SelectionChanged" FontSize="12">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="100" Header="Type" >
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=RecipientType}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="200" Header="Name"  >
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=DisplayName}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="400" Header="Email"  >
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=EmailAddress}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <GridSplitter Grid.Row="1" Height="3" HorizontalAlignment="Stretch" />
+                <ListView Grid.Row="2"  Name="listProperties" Margin="0,0,0,0" ItemsSource="{Binding Path=CurrentProperties}" FontSize="12">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="50" Header="Id" >
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=DisplayId}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="200" Header="Description"  >
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=Description}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="400" Header="Value"  >
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=DisplayValue}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+            <ListView Grid.Row="2"  Name="listAttachments" Margin="0,0,0,0" ItemsSource="{Binding Path=CurrentMessage.Attachments}" MaxHeight="200"
+                      SelectionChanged="listAttachments_SelectionChanged" FontSize="12" Visibility="{Binding IsAttachmentPresent, Converter={StaticResource VisibleIfTrue}}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Width="75" Header="Type"  >
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Type}"  FontWeight="{Binding Path=Weight}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Width="300" Header="Attachment" >
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Description}"  FontWeight="{Binding Path=Weight}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Width="50" Header="Size"  >
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Size}"  FontWeight="{Binding Path=Weight}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+                <ListView.CommandBindings>
+                    <CommandBinding Command="Open" CanExecute="attachmentCommand_CanExecute" Executed="openAttachment_Executed"/>
+                    <CommandBinding Command="Search" CanExecute="attachmentFileCommand_CanExecute" Executed="openAttachmentWith_Executed"/>
+                    <CommandBinding Command="Save" CanExecute="attachmentFileCommand_CanExecute" Executed="saveAttachmentAs_Executed"/>
+                </ListView.CommandBindings>
+                <ListView.InputBindings>
+                    <KeyBinding Command="Search" Gesture="CTRL+W"/>
+                </ListView.InputBindings>
+                <ListView.ContextMenu >
+                    <ContextMenu>
+                        <MenuItem Command="Open"/>
+                        <MenuItem Command="Search" Header="Open With…" InputGestureText="Ctrl+W"/>
+                        <MenuItem Command="Save"/>
+                    </ContextMenu>
+                </ListView.ContextMenu>
+            </ListView>
+        </Grid>
+        <StackPanel Grid.Column="4" Grid.Row="1" Orientation="Horizontal">
+            <Button Content="Save All Attachments..." Height="20" Width="150" Margin="10,0,0,0" Name="btnSaveAllAttachments" Click="btnSaveAllAttachments_Click" 
+                        Visibility="{Binding IsFileAttachmentPresent, Converter={StaticResource VisibleIfTrue}}" IsEnabled="{Binding Path=IsFileAttachmentPresent}"/>
+            <Button Content="Close Email" Height="20" Width="75" Margin="10,0,0,0" Name="btnCloseEmail" Click="btnCloseEmail_Click"
+                        Visibility="{Binding CanPopMessage, Converter={StaticResource VisibleIfTrue}}" />
+        </StackPanel>
+        <StackPanel Grid.Column="4" Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <RadioButton x:Name="rbContent" Content="Content" Margin="0,7,10,0" IsChecked="True" Click="rbContent_Click"
+                              Visibility="{Binding MessagePresent, Converter={StaticResource VisibleIfTrue}}"/>
+            <RadioButton x:Name="rbProperties" Content="Properties" Margin="0,7,10,0" Click="rbProperties_Click"
+                              Visibility="{Binding MessagePresent, Converter={StaticResource VisibleIfTrue}}"/>
+            <Button Content="i" Width="20" Margin="0,0,5,0" Click="btnInfo_Click" Height="20" VerticalAlignment="Center" FontWeight="Bold" HorizontalAlignment="Right"/>
+        </StackPanel>
+    </Grid>
+</Window>
