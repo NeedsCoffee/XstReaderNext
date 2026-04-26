@@ -16,13 +16,19 @@
 dotnet build XstReader.sln
 ```
 
-4. Run the desktop app:
+4. Run the test project:
+
+```powershell
+dotnet test tests\XstReader.Base.Tests\XstReader.Base.Tests.csproj
+```
+
+5. Run the desktop app:
 
 ```powershell
 dotnet run --project src\XstReader\XstReader.csproj
 ```
 
-5. Run the CLI help:
+6. Run the CLI help:
 
 ```powershell
 dotnet run --project src\XstExport\XstExport.csproj -- --help

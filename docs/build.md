@@ -27,6 +27,12 @@ This modernization was the basis of version `2.0`. The current release line is `
 dotnet build XstReader.sln
 ```
 
+## Run Tests
+
+```powershell
+dotnet test tests\XstReader.Base.Tests\XstReader.Base.Tests.csproj
+```
+
 ## Run From Source
 
 Desktop app:

@@ -139,6 +139,7 @@ At a high level:
 dotnet build XstReader.sln
 dotnet run --project src\XstReader\XstReader.csproj
 dotnet run --project src\XstExport\XstExport.csproj -- --help
+dotnet test tests\XstReader.Base.Tests\XstReader.Base.Tests.csproj
 ```
 
 Cross-platform self-contained exporter publishes:

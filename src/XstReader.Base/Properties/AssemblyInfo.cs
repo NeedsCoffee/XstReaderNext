@@ -33,3 +33,4 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("2.1.2.0")]
+[assembly: InternalsVisibleTo("XstReader.Base.Tests")]
