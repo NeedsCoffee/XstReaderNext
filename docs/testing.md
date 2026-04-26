@@ -2,9 +2,10 @@
 
 ## Automated Tests
 
-The current automated test project is:
+The current automated test projects are:
 
 - `tests/XstReader.Base.Tests`
+- `tests/XstExport.Cli.Tests`
 
 It currently focuses on deterministic shared-library behavior in `XstReader.Base`, including:
 
@@ -12,10 +13,16 @@ It currently focuses on deterministic shared-library behavior in `XstReader.Base
 - CRC, signature, and alignment helpers
 - crypto behavior that can be validated without PST fixtures
 
+It also includes CLI smoke coverage for `XstExport`, including:
+
+- `--help` output
+- invalid argument combinations
+- missing input file handling and exit codes
+
 Run the tests with:
 
 ```powershell
-dotnet test tests\XstReader.Base.Tests\XstReader.Base.Tests.csproj
+dotnet test XstReader.sln
 ```
 
 ## CI
@@ -24,7 +31,7 @@ GitHub Actions runs the Windows CI workflow in `.github/workflows/ci.yml`. It:
 
 - restores the solution
 - builds the solution
-- runs the shared-library test project
+- runs both automated test projects
 
 ## Manual Validation
 
