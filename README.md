@@ -70,13 +70,13 @@ Current release assets for `2.1.2`:
 - [Architecture](docs/architecture.md)
 - [Testing](docs/testing.md)
 - [Release notes](docs/releases.md)
-- [MS-PST reference PDF](docs/specs/MS-PST_11.2.pdf)
+- [MS-PST specification](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/141923d5-15ab-4ef1-a524-6dce75aae546)
 
 ## Background
 
 The original motivation for the project was simple: open `.ost` files without Outlook. That remains one of the main reasons the tool is useful.
 
-The parser is based on Microsoft’s published Outlook file format documentation in [MS-PST](docs/specs/MS-PST_11.2.pdf).
+The parser is based on Microsoft’s published Outlook file format documentation in [MS-PST](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/141923d5-15ab-4ef1-a524-6dce75aae546).
 
 ## Project Metadata
 

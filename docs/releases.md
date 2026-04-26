@@ -12,6 +12,8 @@ Release metadata is stored under:
 
 Published binaries are distributed through GitHub Releases rather than committed to the repository.
 
+The parser work in this repository tracks Microsoft’s published [MS-PST specification](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/141923d5-15ab-4ef1-a524-6dce75aae546).
+
 ## Release History
 
 - `2.1.2`

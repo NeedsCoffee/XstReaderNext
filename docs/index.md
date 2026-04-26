@@ -10,7 +10,7 @@ Xst Reader is an open source Outlook `.ost` and `.pst` reader with a Windows des
 - [Architecture](architecture.md)
 - [Testing](testing.md)
 - [Releases](releases.md)
-- [MS-PST reference PDF](specs/MS-PST_11.2.pdf)
+- [MS-PST specification](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/141923d5-15ab-4ef1-a524-6dce75aae546)
 
 ## Project Summary
 
