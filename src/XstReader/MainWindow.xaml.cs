@@ -24,10 +24,18 @@ namespace XstReader
     public partial class MainWindow : Window
     {
         private View view = new View();
-        private XstFile xstFile = null;
+        private readonly MailboxSessionService mailboxSessionService = new MailboxSessionService(new XstFileMailboxSessionOperations());
         private List<string> tempFileNames = new List<string>();
         private readonly AppSettings settings = AppSettings.Load();
         private int searchIndex = -1;
+
+        private MailboxExportService ExportService
+        {
+            get
+            {
+                return new MailboxExportService(new XstFileExportOperations(mailboxSessionService.CurrentFile));
+            }
+        }
 
         public MainWindow()
         {
@@ -65,8 +73,7 @@ namespace XstReader
             {
                 try
                 {
-                    xstFile = new XstFile(fileName);
-                    var root = xstFile.ReadFolderTree();
+                    var root = mailboxSessionService.OpenMailbox(fileName);
 
                     //
                     // I refactorized this part: 
@@ -142,7 +149,7 @@ namespace XstReader
                     {
                         try
                         {
-                            xstFile.ReadMessages(fv.Folder);
+                            mailboxSessionService.LoadFolderMessages(fv.Folder);
                             // We may be called on a background thread, so we need to dispatch this to the UI thread
                             Application.Current.Dispatcher.Invoke(new Action(() => fv.UpdateMessageViews()));
                         }
@@ -181,7 +188,7 @@ namespace XstReader
             {
                 try
                 {
-                    xstFile.ReadMessageDetails(mv.Message);
+                    mailboxSessionService.LoadMessageDetails(mv.Message);
                     ShowMessage(mv);
                 }
                 catch (System.Exception ex)
@@ -241,8 +248,7 @@ namespace XstReader
                 {
                     try
                     {
-                        view.CurrentMessage.Message.ExportToFile(fullFileName, xstFile);
-                        xstFile.SaveVisibleAttachmentsToAssociatedFolder(fullFileName, view.CurrentMessage.Message);
+                        ExportService.ExportEmail(view.CurrentMessage.Message, fullFileName);
                     }
                     catch (System.Exception ex)
                     {
@@ -257,20 +263,15 @@ namespace XstReader
             var targetCol = ((GridView)listMessages.View).Columns.Select(c => (GridViewColumnHeader)c.Header)
                             .First(h => h.Tag.ToString() == property);
 
-            // See if we have any sorts applied, in which case, we may be done
             var sorts = listMessages.Items.SortDescriptions;
-            if (ifNoneAlready && sorts.Count > 0)
+            MessageSortPlan sortPlan = MessageSortService.BuildSortPlan(property, direction, sorts.Cast<SortDescription>(), ifNoneAlready);
+            if (!sortPlan.ShouldApply)
                 return;
 
-            // Look for a sort on the target columm
             var matches = sorts.Where(s => s.PropertyName == property);
             if (matches.Count() > 0)
             {
-                // If there is one, just toggle it
-                var sort = matches.First();
-                direction = ((sort.Direction == ListSortDirection.Ascending) ?
-                                ListSortDirection.Descending : ListSortDirection.Ascending);
-                sorts.Remove(sort);
+                sorts.Remove(matches.First());
             }
             //else
             //{
@@ -293,7 +294,7 @@ namespace XstReader
             //}
 
             // Apply the requested sort as the dominant one, whatever it was before
-            sorts.Insert(0, new SortDescription(property, direction));
+            sorts.Insert(0, new SortDescription(property, sortPlan.Direction));
 
             // Find any sort adorner applied to the target column
             var adorners = AdornerLayer.GetAdornerLayer(targetCol);
@@ -303,7 +304,7 @@ namespace XstReader
                 adorners.Remove(adorner);
 
             // Create and apply the requested adorner
-            adorner = new SortAdorner(targetCol, direction);
+            adorner = new SortAdorner(targetCol, sortPlan.Direction);
             adorners.Add(adorner);
         }
 
@@ -319,51 +320,22 @@ namespace XstReader
                 // Export emails on a background thread so we can keep the UI in sync
                 Task.Factory.StartNew<Tuple<int, int>>(() =>
                 {
-                    MessageView current = null;
-                    int good = 0, bad = 0;
-                    // If files already exist, we overwrite them.
-                    // But if emails within this batch generate the same filename,
-                    // use a numeric suffix to distinguish them
-                    HashSet<string> usedNames = new HashSet<string>();
-                    foreach (MessageView mv in messages)
-                    {
-                        try
+                    var result = ExportService.ExportEmails(
+                        messages.Select(mv => mv.Message),
+                        folderName,
+                        reportProgress: status => Application.Current.Dispatcher.Invoke(new Action(() => ShowStatus(status))),
+                        shouldContinue: failure =>
                         {
-                            current = mv;
-                            string fileName = mv.ExportFileName;
-                            for (int i = 1; ; i++)
-                            {
-                                if (!usedNames.Contains(fileName))
-                                {
-                                    usedNames.Add(fileName);
-                                    break;
-                                }
-                                else
-                                    fileName = String.Format("{0} ({1})", mv.ExportFileName, i);
-                            }
-                            Application.Current.Dispatcher.Invoke(new Action(() =>
-                            {
-                                ShowStatus("Exporting " + mv.ExportFileName);
-                            }));
-                            // Ensure that we have the message contents
-                            xstFile.ReadMessageDetails(mv.Message);
-                            var fullFileName = String.Format(@"{0}\{1}.{2}",
-                                        folderName, fileName, mv.Message.ExportFileExtension);
-                            mv.Message.ExportToFile(fullFileName, xstFile);
-                            xstFile.SaveVisibleAttachmentsToAssociatedFolder(fullFileName, mv.Message);
-                            good++;
-                        }
-                        catch (System.Exception ex)
-                        {
-                            var result = MessageBox.Show(String.Format("Error '{0}' exporting email '{1}'",
-                                ex.Message, current.Subject), "Error exporting emails",
-                                MessageBoxButton.OKCancel);
-                            bad++;
-                            if (result == MessageBoxResult.Cancel)
-                                break;
-                        }
-                    }
-                    return new Tuple<int, int>(good, bad);
+                            var choice = Application.Current.Dispatcher.Invoke(() =>
+                                MessageBox.Show(
+                                    String.Format("Error '{0}' exporting email '{1}'",
+                                        failure.Exception.Message, failure.Message.Subject),
+                                    "Error exporting emails",
+                                    MessageBoxButton.OKCancel));
+                            return choice != MessageBoxResult.Cancel;
+                        });
+
+                    return new Tuple<int, int>(result.SuccessfulCount, result.FailedCount);
                 })
                 // When exporting completes, update the UI using the UI thread 
                 .ContinueWith((task) =>
@@ -393,7 +365,7 @@ namespace XstReader
                 {
                     try
                     {
-                        xstFile.ExportMessageProperties(messages.Select(v => v.Message), fileName);
+                        ExportService.ExportMessageProperties(messages.Select(v => v.Message), fileName);
                     }
                     catch (System.Exception ex)
                     {
@@ -420,7 +392,7 @@ namespace XstReader
             {
                 try
                 {
-                    xstFile.SaveAttachmentsToFolder(folderName, view.CurrentMessage.Date, attachments);
+                    ExportService.SaveAttachmentsToFolder(folderName, view.CurrentMessage.Date, attachments);
                 }
                 catch (System.Exception ex)
                 {
@@ -441,7 +413,7 @@ namespace XstReader
                 string fileName = GetPropertiesExportFileName(view.CurrentMessage.ExportFileName);
 
                 if (fileName != null)
-                    xstFile.ExportMessageProperties(new Message[1] { view.CurrentMessage.Message }, fileName);
+                    ExportService.ExportMessageProperties(new Message[1] { view.CurrentMessage.Message }, fileName);
             }
         }
 
@@ -471,51 +443,27 @@ namespace XstReader
             try
             {
                 var args = e as SearchEventArgs;
-                bool subject = args.Sections.Contains("Subject");
-                bool fromTo = args.Sections.Contains("From/To");
-                bool date = args.Sections.Contains("Date");
-                bool cc = args.Sections.Contains("Cc");
-                bool bcc = args.Sections.Contains("Bcc");
-                bool found = false;
-                switch (args.SearchEventType)
+                MessageSearchSections sections = MessageSearchService.ParseSections(args.Sections);
+                List<MessageView> messages = listMessages.Items.Cast<MessageView>().ToList();
+                MessageSearchResult result = MessageSearchService.FindMatch(
+                    messages,
+                    args.Keyword,
+                    sections,
+                    args.SearchEventType,
+                    searchIndex);
+
+                if (result.Found)
                 {
-                    case SearchEventType.Search:
-                        for (int i = 0; i < listMessages.Items.Count; i++)
-                        {
-                            found = PropertyHitTest(i, args.Keyword, subject, fromTo, date, cc, bcc);
-                            if (found)
-                                break;
-                        }
-
-                        if (!found)
-                            searchIndex = -1;
-                        break;
-                    case SearchEventType.Next:
-                        for (int i = searchIndex + 1; i < listMessages.Items.Count; i++)
-                        {
-                            found = PropertyHitTest(i, args.Keyword, subject, fromTo, date, cc, bcc);
-                            if (found)
-                            {
-                                searchTextBox.ShowSearch = true;
-                                break;
-                            }
-                        }
-                        break;
-                    case SearchEventType.Previous:
-                        for (int i = searchIndex - 1; i >= 0; i--)
-                        {
-                            found = PropertyHitTest(i, args.Keyword, subject, fromTo, date, cc, bcc);
-                            if (found)
-                            {
-                                searchTextBox.ShowSearch = true;
-                                break;
-                            }
-                        }
-                        break;
+                    ApplySearchSelection(messages[result.Index], result.Index);
+                    if (result.ShouldShowSearch)
+                        searchTextBox.ShowSearch = true;
                 }
-
-                if (!found)
+                else
+                {
+                    if (args.SearchEventType == SearchEventType.Search)
+                        searchIndex = -1;
                     searchTextBox.IndicateSearchFailed(args.SearchEventType);
+                }
             }
             catch 
             {
@@ -523,23 +471,12 @@ namespace XstReader
             }
         }
 
-        private bool PropertyHitTest(int index, string text, bool subject, bool fromTo, bool date, bool cc, bool bcc)
+        private void ApplySearchSelection(MessageView messageView, int index)
         {
-            MessageView mv = listMessages.Items[index] as MessageView;
-            if ((subject && mv.Subject != null && mv.Subject.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
-                (fromTo && mv.FromTo != null && mv.FromTo.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
-                (date && mv.DisplayDate.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
-                (cc && mv.CcDisplayList.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
-                (bcc && mv.BccDisplayList.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0))
-            {
-                searchIndex = index;
-                listMessages.UnselectAll();
-                mv.IsSelected = true;
-                listMessages.ScrollIntoView(mv);
-                return true;
-            }
-            else
-                return false;
+            searchIndex = index;
+            listMessages.UnselectAll();
+            messageView.IsSelected = true;
+            listMessages.ScrollIntoView(messageView);
         }
 
         private void ShowStatus(string status)
@@ -570,7 +507,7 @@ namespace XstReader
                     {
                         try
                         {
-                            mv.ReadSignedOrEncryptedMessage(xstFile);
+                            mv.ReadSignedOrEncryptedMessage(mailboxSessionService.CurrentFile);
                         }
                         catch
                         {
@@ -586,7 +523,7 @@ namespace XstReader
                     {
                         string body = mv.Message.GetBodyAsHtmlString();
                         if (mv.MayHaveInlineAttachment)
-                            body = mv.Message.EmbedAttachments(body, xstFile);  // Returns null if this is not appropriate
+                            body = mv.Message.EmbedAttachments(body, mailboxSessionService.CurrentFile);  // Returns null if this is not appropriate
 
                         if (body != null)
                         {
@@ -641,7 +578,7 @@ namespace XstReader
 
         private void OpenEmailAttachment(Attachment a)
         {
-            Message m = xstFile.OpenAttachedMessage(a);
+            Message m = mailboxSessionService.CurrentFile.OpenAttachedMessage(a);
             var mv = new MessageView(m);
             ShowMessage(mv);
             view.PushMessage(mv);
@@ -820,7 +757,7 @@ namespace XstReader
 
             try
             {
-                xstFile.SaveAttachment(fileFullName, null, listAttachments.SelectedItem as Attachment);
+                ExportService.SaveAttachment(fileFullName, null, a);
                 tempFileNames.Add(fileFullName);
                 return fileFullName;
             }
@@ -911,7 +848,7 @@ namespace XstReader
                 {
                     try
                     {
-                        xstFile.SaveAttachment(fullFileName, view.CurrentMessage.Date, a);
+                        ExportService.SaveAttachment(fullFileName, view.CurrentMessage.Date, a);
                     }
                     catch (System.Exception ex)
                     {

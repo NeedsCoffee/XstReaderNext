@@ -6,6 +6,7 @@ The current automated test projects are:
 
 - `tests/XstReader.Base.Tests`
 - `tests/XstExport.Cli.Tests`
+- `tests/XstReader.Tests`
 
 It currently focuses on deterministic shared-library behavior in `XstReader.Base`, including:
 
@@ -18,6 +19,14 @@ It also includes CLI smoke coverage for `XstExport`, including:
 - `--help` output
 - invalid argument combinations
 - missing input file handling and exit codes
+
+It also includes unit coverage for extracted `XstReader` desktop services, including:
+
+- email export duplicate-name handling
+- continue/cancel behavior when batch export hits errors
+- message search section matching and next/previous navigation
+- sort-direction resolution for repeated/default sorts
+- mailbox session open/load/select orchestration
 
 Run the tests with:
 
