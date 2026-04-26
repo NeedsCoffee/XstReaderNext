@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a new feature or a substantial improvement.
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user or maintainer problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the change at a high level.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Primary area
+      options:
+        - XstReader
+        - XstReader.Base
+        - XstExport
+        - Documentation
+        - Build or packaging
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Constraints or risks
+      description: Mention compatibility, parser correctness, platform, or packaging concerns.

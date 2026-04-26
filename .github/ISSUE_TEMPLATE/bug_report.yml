@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible problem in the desktop app, parser, or exporter.
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Provide enough detail to reproduce the issue, including whether it affects `XstReader`, `XstReader.Base`, or `XstExport`.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: A release version or commit hash.
+      placeholder: 2.1.2
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - XstReader
+        - XstReader.Base
+        - XstExport
+        - Build or packaging
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: List the smallest set of steps needed to reproduce the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, architecture, and whether the file was `.pst` or `.ost`.

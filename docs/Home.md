@@ -13,7 +13,7 @@ Current applications:
 - `XstExport`
   A command-line exporter for messages, attachments, and CSV property dumps
 
-![Home screenshot](Home_screenshot0.9.JPG)
+![Home screenshot](media/Home_screenshot0.9.JPG)
 
 ## What Changed From The Original Project
 
@@ -53,6 +53,6 @@ That modernization was the defining change in version `2.0`. Version `2.1.2` add
 
 Xst Reader exists because `.ost` access without Outlook is still awkward, and open source tools in this space are limited.
 
-The parser is based on Microsoft’s published Outlook file format documentation: [MS-PST](https://msdn.microsoft.com/en-us/library/ff385210(v=office.12).aspx).
+The parser is based on Microsoft’s published Outlook file format documentation: [MS-PST](specs/MS-PST_11.2.pdf).
 
-For current build and release details, see the top-level [README](../README.md) and [HowToBuild](../HowToBuild.md).
+For current build and release details, see the top-level [README](../README.md) and [build guide](build.md).

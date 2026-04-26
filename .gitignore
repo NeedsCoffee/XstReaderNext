@@ -5,6 +5,8 @@
 *.userosscache
 *.sln.docstates
 *.csproj.user
+*.vcxproj.user
+*.userprefs
 
 # Build output
 **/bin/
@@ -20,3 +22,11 @@
 /.cr/
 /documents/
 /docs/Command line tests.txt
+
+# Release packaging output
+/release/*/stage/
+/release/**/*.zip
+/release/**/*.tar.gz
+/release/**/*.exe
+/release/**/XstExport
+/release/**/XstReader

@@ -16,7 +16,7 @@ It includes:
 
 The project has no dependency on Microsoft Office components.
 
-![Xst Reader screenshot](screenshot5.png)
+![Xst Reader screenshot](docs/media/screenshot5.png)
 
 ## Project Lineage
 
@@ -131,7 +131,7 @@ Runtime behavior note:
 
 ## Building
 
-See [HowToBuild.md](HowToBuild.md) for build details.
+See [docs/build.md](docs/build.md) for build details.
 
 At a high level:
 
@@ -201,3 +201,8 @@ Credit for the original XstReader application and parser belongs to Dijji. This 
 ## License
 
 Distributed under the MS-PL license. See [license.md](license.md) for more information.
+
+## Repository Guidance
+
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
