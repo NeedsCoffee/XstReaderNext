@@ -12,21 +12,3 @@
 **/bin/
 **/obj/
 /dist/
-/dist-build/
-/publish/
-/publish-tests/
-/publish-trimmed/
-/Releases/
-
-# Legacy repo-specific generated output
-/.cr/
-/documents/
-/docs/Command line tests.txt
-
-# Release packaging output
-/release/*/stage/
-/release/**/*.zip
-/release/**/*.tar.gz
-/release/**/*.exe
-/release/**/XstExport
-/release/**/XstReader

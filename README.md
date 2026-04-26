@@ -201,7 +201,7 @@ Credit for the original XstReader application and parser belongs to Dijji. This 
 
 ## License
 
-Distributed under the MS-PL license. See [license.md](license.md) for more information.
+Distributed under the MS-PL license. See [LICENSE.md](LICENSE.md) for more information.
 
 ## Repository Guidance
 
